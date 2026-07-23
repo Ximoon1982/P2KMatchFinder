@@ -1,328 +1,650 @@
-<div id="p2kMatchSearch" style="max-width:720px;margin:20px auto;padding:20px;border:1px solid rgba(255,190,60,.45);border-radius:14px;background:linear-gradient(135deg,#27231f,#171513);color:#eee;font-family:Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35);">
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Promote to King — Open Daily Matches</title>
+  <style>
+    :root {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #eee;
+      background: transparent;
+    }
 
-  <div style="font-size:22px;font-weight:bold;color:#f6b73c;margin-bottom:16px;">
-    Open Daily Matches
-  </div>
+    * { box-sizing: border-box; }
 
-  <label for="p2kNickname" style="display:block;font-weight:bold;margin-bottom:6px;">
-    Please enter your nickname
-  </label>
+    body {
+      margin: 0;
+      padding: 12px;
+      background: transparent;
+    }
 
-  <input id="p2kNickname"
-         type="text"
-         autocomplete="off"
-         placeholder="Chess.com nickname"
-         style="box-sizing:border-box;width:100%;padding:11px 12px;margin-bottom:16px;border:1px solid #6b6258;border-radius:7px;background:#111;color:#fff;font-size:15px;">
+    .finder {
+      width: min(100%, 760px);
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid rgba(255, 190, 60, .45);
+      border-radius: 14px;
+      background: linear-gradient(135deg, #27231f, #171513);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+    }
 
-  <div style="margin-bottom:16px;line-height:2;">
-    <label style="margin-right:18px;cursor:pointer;">
-      <input type="radio" name="p2kMatchType" value="classical">
-      Classical chess matches
-    </label>
+    .title {
+      margin: 0 0 16px;
+      color: #f6b73c;
+      font-size: 22px;
+      font-weight: 700;
+    }
 
-    <label style="margin-right:18px;cursor:pointer;">
-      <input type="radio" name="p2kMatchType" value="chess960">
-      Chess 960 matches
-    </label>
+    .field-label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
 
-    <label style="cursor:pointer;">
-      <input type="radio" name="p2kMatchType" value="all" checked>
-      All daily matches
-    </label>
-  </div>
+    .username {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #6b6258;
+      border-radius: 7px;
+      background: #111;
+      color: #fff;
+      font-size: 15px;
+    }
 
-  <button id="p2kSearchButton"
-          type="button"
-          style="padding:10px 25px;border:0;border-radius:7px;background:#d98d18;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;">
-    Search
-  </button>
+    .username:focus {
+      outline: 2px solid rgba(246, 183, 60, .55);
+      outline-offset: 2px;
+    }
 
-  <div id="p2kProgress"
-       aria-live="polite"
-       style="display:none;margin-top:18px;padding:11px;border-radius:7px;background:rgba(255,183,60,.12);color:#ffd078;font-weight:bold;">
-  </div>
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      margin: 16px 0;
+    }
 
-  <div id="p2kResults" style="margin-top:16px;"></div>
-</div>
+    .choice {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
 
-<script>
-(function () {
-  "use strict";
+    .search-button {
+      padding: 10px 25px;
+      border: 0;
+      border-radius: 7px;
+      background: #d98d18;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
 
-  const LIST_URL =
-    "https://api.chess.com/pub/club/promote-to-king/matches";
+    .search-button:hover:not(:disabled) { filter: brightness(1.08); }
 
-  const nicknameInput = document.getElementById("p2kNickname");
-  const searchButton = document.getElementById("p2kSearchButton");
-  const progressBox = document.getElementById("p2kProgress");
-  const resultsBox = document.getElementById("p2kResults");
+    .search-button:disabled {
+      cursor: wait;
+      opacity: .55;
+    }
 
-  function escapeHTML(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+    .status {
+      display: none;
+      margin-top: 18px;
+      padding: 11px;
+      border-radius: 7px;
+      background: rgba(255, 183, 60, .12);
+      color: #ffd078;
+      font-weight: 700;
+    }
 
-  function delay(milliseconds) {
-    return new Promise(resolve => setTimeout(resolve, milliseconds));
-  }
+    .status.error {
+      background: rgba(255, 110, 90, .10);
+      color: #ff9a82;
+    }
 
-  function allowScreenUpdate() {
-    return new Promise(resolve =>
-      requestAnimationFrame(() => requestAnimationFrame(resolve))
-    );
-  }
+    .status.success {
+      background: rgba(90, 190, 100, .10);
+      color: #8fd68f;
+    }
 
-  async function loadJSON(url) {
-    let lastError;
+    .progress-track {
+      display: none;
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .10);
+    }
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Accept": "application/json"
-          },
-          cache: "no-store"
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: #f6b73c;
+      transition: width .15s ease;
+    }
+
+    .ratings {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .055);
+      color: #d7d2cb;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .ratings strong { color: #ffd078; }
+
+    .results { margin-top: 16px; }
+
+    .result-summary {
+      margin-bottom: 10px;
+      color: #f6b73c;
+      font-weight: 700;
+    }
+
+    .empty,
+    .warning {
+      padding: 12px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .06);
+    }
+
+    .warning {
+      margin-top: 12px;
+      color: #ff9a82;
+      font-size: 13px;
+    }
+
+    .match-card {
+      margin: 9px 0;
+      padding: 12px;
+      border-left: 4px solid #d98d18;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .055);
+    }
+
+    .match-card.registered { border-left-color: #61b861; }
+
+    .match-title {
+      display: inline-block;
+      margin-bottom: 7px;
+      color: #ffd078;
+      font-weight: 700;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+
+    .match-title:hover { text-decoration: underline; }
+
+    .match-details {
+      color: #c9c2b9;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .eligible { color: #8fd68f; font-weight: 700; }
+    .registered-text { color: #79d879; font-weight: 700; }
+
+    @media (max-width: 540px) {
+      body { padding: 6px; }
+      .finder { padding: 16px; }
+      .choices { flex-direction: column; gap: 9px; }
+      .search-button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main id="p2kMatchSearch" class="finder">
+    <h1 class="title">Open Daily Matches</h1>
+
+    <label class="field-label" for="p2kUsername">Please enter your user name</label>
+    <input
+      id="p2kUsername"
+      class="username"
+      type="text"
+      autocomplete="off"
+      autocapitalize="none"
+      spellcheck="false"
+      placeholder="Chess.com user name"
+    >
+
+    <div class="choices" role="radiogroup" aria-label="Match type">
+      <label class="choice">
+        <input type="radio" name="p2kMatchType" value="classical">
+        <span>Classical chess matches</span>
+      </label>
+
+      <label class="choice">
+        <input type="radio" name="p2kMatchType" value="chess960">
+        <span>Chess 960 matches</span>
+      </label>
+
+      <label class="choice">
+        <input type="radio" name="p2kMatchType" value="all" checked>
+        <span>All daily matches</span>
+      </label>
+    </div>
+
+    <button id="p2kSearchButton" class="search-button" type="button">Search</button>
+
+    <div id="p2kStatus" class="status" aria-live="polite">
+      <div id="p2kStatusText"></div>
+      <div id="p2kProgressTrack" class="progress-track" aria-hidden="true">
+        <div id="p2kProgressBar" class="progress-bar"></div>
+      </div>
+    </div>
+
+    <div id="p2kRatings" class="ratings"></div>
+    <div id="p2kResults" class="results"></div>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const CLUB_ID = "promote-to-king";
+      const CLUB_MATCHES_URL = `https://api.chess.com/pub/club/${CLUB_ID}/matches`;
+      const REQUEST_ATTEMPTS = 3;
+      const JSONP_TIMEOUT_MS = 20000;
+
+      const usernameInput = document.getElementById("p2kUsername");
+      const searchButton = document.getElementById("p2kSearchButton");
+      const statusBox = document.getElementById("p2kStatus");
+      const statusText = document.getElementById("p2kStatusText");
+      const progressTrack = document.getElementById("p2kProgressTrack");
+      const progressBar = document.getElementById("p2kProgressBar");
+      const ratingsBox = document.getElementById("p2kRatings");
+      const resultsBox = document.getElementById("p2kResults");
+
+      class HttpError extends Error {
+        constructor(status, url) {
+          super(`HTTP ${status} while loading ${url}`);
+          this.name = "HttpError";
+          this.status = status;
+          this.url = url;
+        }
+      }
+
+      function delay(milliseconds) {
+        return new Promise(resolve => window.setTimeout(resolve, milliseconds));
+      }
+
+      function allowScreenUpdate() {
+        return new Promise(resolve => {
+          window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
         });
-
-        if (!response.ok) {
-          throw new Error(
-            "HTTP error " + response.status + " while loading " + url
-          );
-        }
-
-        return await response.json();
-      } catch (error) {
-        lastError = error;
-
-        if (attempt < 3) {
-          await delay(attempt * 750);
-        }
-      }
-    }
-
-    throw lastError;
-  }
-
-  function selectedMatchType() {
-    const selected = document.querySelector(
-      'input[name="p2kMatchType"]:checked'
-    );
-
-    return selected ? selected.value : "all";
-  }
-
-  function isChess960(match) {
-    return String(match?.settings?.rules || "").toLowerCase() === "chess960";
-  }
-
-  function matchesSelectedType(match, type) {
-    if (type === "all") {
-      return true;
-    }
-
-    if (type === "chess960") {
-      return isChess960(match);
-    }
-
-    return !isChess960(match);
-  }
-
-  function findP2KTeam(match) {
-    const teams = Object.values(match?.teams || {});
-
-    return teams.find(team => {
-      const apiURL = String(team?.["@id"] || "").toLowerCase();
-      const webURL = String(team?.url || "").toLowerCase();
-
-      return apiURL.includes("/club/promote-to-king") ||
-             webURL.includes("/club/promote-to-king");
-    }) || null;
-  }
-
-  function nicknameIsRegistered(match, nickname) {
-    const team = findP2KTeam(match);
-
-    if (!team || !Array.isArray(team.players)) {
-      return false;
-    }
-
-    const searchedNickname = nickname.trim().toLowerCase();
-
-    return team.players.some(player =>
-      String(player?.username || "").toLowerCase() === searchedNickname
-    );
-  }
-
-  function displayResults(matches, nickname, failedCount) {
-    if (matches.length === 0) {
-      resultsBox.innerHTML =
-        '<div style="padding:12px;border-radius:7px;background:rgba(255,255,255,.06);">' +
-          "No open match corresponds to the selected category." +
-        "</div>";
-
-      return;
-    }
-
-    let html =
-      '<div style="margin-bottom:10px;font-weight:bold;color:#f6b73c;">' +
-        matches.length + " matching open match" +
-        (matches.length === 1 ? "" : "es") +
-      "</div>";
-
-    for (const match of matches) {
-      const registered = nicknameIsRegistered(match, nickname);
-      const matchName = escapeHTML(match.name || "Unnamed match");
-      const matchURL = escapeHTML(match.url || "#");
-      const rules = isChess960(match) ? "Chess 960" : "Classical chess";
-
-      html +=
-        '<div style="margin:9px 0;padding:12px;border-left:4px solid ' +
-        (registered ? "#61b861" : "#d98d18") +
-        ';border-radius:7px;background:rgba(255,255,255,.055);">' +
-
-          '<div style="font-weight:bold;margin-bottom:6px;">' +
-            '<a href="' + matchURL + '" target="_blank" rel="noopener noreferrer" ' +
-               'style="color:#ffd078;text-decoration:none;">' +
-              matchName +
-            "</a>" +
-          "</div>" +
-
-          '<div style="font-size:13px;color:#bbb;">' +
-            escapeHTML(rules) +
-            " &bull; " +
-            '<span style="color:' +
-              (registered ? "#79d879" : "#ffbc55") +
-              ';font-weight:bold;">' +
-              (registered
-                ? escapeHTML(nickname) + " is already registered"
-                : escapeHTML(nickname) + " is not registered") +
-            "</span>" +
-          "</div>" +
-        "</div>";
-    }
-
-    if (failedCount > 0) {
-      html +=
-        '<div style="margin-top:12px;color:#ff9a82;font-size:13px;">' +
-          failedCount + " match" +
-          (failedCount === 1 ? "" : "es") +
-          " could not be loaded." +
-        "</div>";
-    }
-
-    resultsBox.innerHTML = html;
-  }
-
-  async function searchMatches() {
-    const nickname = nicknameInput.value.trim();
-    const matchType = selectedMatchType();
-
-    if (!nickname) {
-      progressBox.style.display = "block";
-      progressBox.style.color = "#ff9a82";
-      progressBox.textContent = "Please enter your nickname.";
-      nicknameInput.focus();
-      return;
-    }
-
-    searchButton.disabled = true;
-    searchButton.style.opacity = "0.55";
-    searchButton.style.cursor = "wait";
-
-    progressBox.style.display = "block";
-    progressBox.style.color = "#ffd078";
-    progressBox.textContent = "Loading the registration match list...";
-
-    resultsBox.innerHTML = "";
-
-    try {
-      const clubMatches = await loadJSON(LIST_URL);
-      const registrationMatches = Array.isArray(clubMatches.registered)
-        ? clubMatches.registered
-        : [];
-
-      const totalMatches = registrationMatches.length;
-      const loadedMatches = [];
-      let failedCount = 0;
-
-      if (totalMatches === 0) {
-        progressBox.textContent =
-          "There are currently no matches open for registration.";
-        return;
       }
 
-      for (let index = 0; index < totalMatches; index++) {
-        const currentNumber = index + 1;
-        const listItem = registrationMatches[index];
+      function setStatus(message, state = "working", progress = null) {
+        statusBox.style.display = "block";
+        statusBox.classList.toggle("error", state === "error");
+        statusBox.classList.toggle("success", state === "success");
+        statusText.textContent = message;
 
-        progressBox.textContent =
-          "Processing match " +
-          currentNumber +
-          " of " +
-          totalMatches;
+        if (progress === null) {
+          progressTrack.style.display = "none";
+          progressBar.style.width = "0%";
+        } else {
+          const safeProgress = Math.max(0, Math.min(100, progress));
+          progressTrack.style.display = "block";
+          progressBar.style.width = `${safeProgress}%`;
+        }
+      }
 
-        await allowScreenUpdate();
+      function selectedMatchType() {
+        return document.querySelector('input[name="p2kMatchType"]:checked')?.value || "all";
+      }
+
+      function appendCallbackParameter(url, callbackName) {
+        const separator = url.includes("?") ? "&" : "?";
+        return `${url}${separator}callback=${encodeURIComponent(callbackName)}`;
+      }
+
+      function loadJSONP(url) {
+        return new Promise((resolve, reject) => {
+          const callbackName = `p2kJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          const script = document.createElement("script");
+          let timer = null;
+
+          const cleanup = () => {
+            if (timer !== null) window.clearTimeout(timer);
+            script.remove();
+            try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+          };
+
+          window[callbackName] = data => {
+            cleanup();
+            resolve(data);
+          };
+
+          script.onerror = () => {
+            cleanup();
+            reject(new Error(`JSONP request failed for ${url}`));
+          };
+
+          timer = window.setTimeout(() => {
+            cleanup();
+            reject(new Error(`JSONP request timed out for ${url}`));
+          }, JSONP_TIMEOUT_MS);
+
+          script.src = appendCallbackParameter(url, callbackName);
+          script.async = true;
+          document.head.appendChild(script);
+        });
+      }
+
+      async function requestJSONOnce(url) {
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store"
+          });
+
+          if (!response.ok) throw new HttpError(response.status, url);
+          return await response.json();
+        } catch (error) {
+          if (error instanceof HttpError) throw error;
+          return await loadJSONP(url);
+        }
+      }
+
+      async function loadJSON(url) {
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt += 1) {
+          try {
+            return await requestJSONOnce(url);
+          } catch (error) {
+            lastError = error;
+
+            if (error instanceof HttpError && error.status === 404) throw error;
+            if (attempt < REQUEST_ATTEMPTS) await delay(attempt * 800);
+          }
+        }
+
+        throw lastError || new Error(`Unable to load ${url}`);
+      }
+
+      function getLastRating(stats, key) {
+        const value = stats?.[key]?.last?.rating;
+        return Number.isFinite(Number(value)) ? Number(value) : null;
+      }
+
+      function getMatchRules(match) {
+        return String(match?.settings?.rules || "").toLowerCase();
+      }
+
+      function isSupportedDailyMatch(match) {
+        const timeClass = String(match?.settings?.time_class || match?.time_class || "").toLowerCase();
+        const rules = getMatchRules(match);
+        return timeClass === "daily" && (rules === "chess" || rules === "chess960");
+      }
+
+      function matchesTypeSelection(match, selectedType) {
+        const rules = getMatchRules(match);
+        if (selectedType === "all") return rules === "chess" || rules === "chess960";
+        if (selectedType === "chess960") return rules === "chess960";
+        return rules === "chess";
+      }
+
+      function findPromoteToKingTeam(match) {
+        const teams = Object.values(match?.teams || {});
+        const expectedApiFragment = `/club/${CLUB_ID}`;
+        const expectedWebFragment = `/club/${CLUB_ID}`;
+
+        return teams.find(team => {
+          const apiUrl = String(team?.["@id"] || "").toLowerCase();
+          const webUrl = String(team?.url || "").toLowerCase();
+          return apiUrl.includes(expectedApiFragment) || webUrl.includes(expectedWebFragment);
+        }) || null;
+      }
+
+      function isTeamUnlocked(team) {
+        return team?.locked === false;
+      }
+
+      function isUserRegistered(team, username) {
+        const normalizedUsername = username.toLowerCase();
+        return Array.isArray(team?.players) && team.players.some(player =>
+          String(player?.username || "").toLowerCase() === normalizedUsername
+        );
+      }
+
+      function numericBound(value, fallback) {
+        if (value === undefined || value === null || value === "") return fallback;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      }
+
+      function getRatingBounds(match) {
+        return {
+          minimum: numericBound(match?.settings?.min_rating, 0),
+          maximum: numericBound(match?.settings?.max_rating, Number.POSITIVE_INFINITY)
+        };
+      }
+
+      function ratingForMatch(match, ratings) {
+        return getMatchRules(match) === "chess960" ? ratings.chess960 : ratings.classical;
+      }
+
+      function isRatingEligible(rating, bounds) {
+        return rating !== null && rating >= bounds.minimum && rating <= bounds.maximum;
+      }
+
+      function formatRating(value) {
+        return value === null ? "not available" : String(value);
+      }
+
+      function formatRatingRange(bounds) {
+        if (!Number.isFinite(bounds.maximum)) return `${bounds.minimum}+`;
+        return `${bounds.minimum}–${bounds.maximum}`;
+      }
+
+      function formatMatchType(match) {
+        return getMatchRules(match) === "chess960" ? "Chess 960" : "Classical chess";
+      }
+
+      function showRatings(username, ratings) {
+        ratingsBox.style.display = "block";
+        ratingsBox.innerHTML =
+          `<strong>${escapeHTML(username)}</strong> — ` +
+          `Daily classical: <strong>${formatRating(ratings.classical)}</strong> · ` +
+          `Daily Chess 960: <strong>${formatRating(ratings.chess960)}</strong>`;
+      }
+
+      function escapeHTML(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function displayResults(matches, username, failedCount) {
+        if (matches.length === 0) {
+          resultsBox.innerHTML =
+            '<div class="empty">No unlocked open match corresponds to the selected category and your current rating.</div>';
+
+          if (failedCount > 0) {
+            resultsBox.insertAdjacentHTML(
+              "beforeend",
+              `<div class="warning">${failedCount} match${failedCount === 1 ? "" : "es"} could not be loaded.</div>`
+            );
+          }
+          return;
+        }
+
+        const sortedMatches = [...matches].sort((a, b) =>
+          Number(a.start_time || 0) - Number(b.start_time || 0)
+        );
+
+        let html =
+          `<div class="result-summary">${sortedMatches.length} eligible unlocked match${sortedMatches.length === 1 ? "" : "es"}</div>`;
+
+        for (const entry of sortedMatches) {
+          const { match, team, rating, bounds } = entry;
+          const registered = isUserRegistered(team, username);
+          const matchName = escapeHTML(match.name || "Unnamed match");
+          const matchUrl = escapeHTML(match.url || "#");
+          const type = escapeHTML(formatMatchType(match));
+          const range = escapeHTML(formatRatingRange(bounds));
+
+          html +=
+            `<article class="match-card${registered ? " registered" : ""}">` +
+              `<a class="match-title" href="${matchUrl}" target="_blank" rel="noopener noreferrer">${matchName}</a>` +
+              `<div class="match-details">` +
+                `${type} · Your rating: <strong>${rating}</strong> · Accepted range: <strong>${range}</strong><br>` +
+                `<span class="eligible">Eligible and registration unlocked for Promote to King</span>` +
+                (registered ? ` · <span class="registered-text">${escapeHTML(username)} is already registered</span>` : "") +
+              `</div>` +
+            `</article>`;
+        }
+
+        if (failedCount > 0) {
+          html +=
+            `<div class="warning">${failedCount} match${failedCount === 1 ? "" : "es"} could not be loaded.</div>`;
+        }
+
+        resultsBox.innerHTML = html;
+      }
+
+      function validateRequestedRatings(selectedType, ratings) {
+        if (selectedType === "classical" && ratings.classical === null) {
+          throw new Error("This user has no Daily classical rating available.");
+        }
+
+        if (selectedType === "chess960" && ratings.chess960 === null) {
+          throw new Error("This user has no Daily Chess 960 rating available.");
+        }
+
+        if (selectedType === "all" && ratings.classical === null && ratings.chess960 === null) {
+          throw new Error("This user has no Daily classical or Daily Chess 960 rating available.");
+        }
+      }
+
+      async function searchMatches() {
+        const username = usernameInput.value.trim();
+        const selectedType = selectedMatchType();
+
+        if (!username) {
+          setStatus("Please enter your user name.", "error");
+          usernameInput.focus();
+          return;
+        }
+
+        searchButton.disabled = true;
+        resultsBox.innerHTML = "";
+        ratingsBox.style.display = "none";
+        ratingsBox.innerHTML = "";
 
         try {
-          if (!listItem["@id"]) {
-            throw new Error("The match has no @id URL.");
+          setStatus(`Loading ratings for ${username}...`);
+
+          const statsUrl = `https://api.chess.com/pub/player/${encodeURIComponent(username.toLowerCase())}/stats`;
+          const stats = await loadJSON(statsUrl);
+          const ratings = {
+            classical: getLastRating(stats, "chess_daily"),
+            chess960: getLastRating(stats, "chess960_daily")
+          };
+
+          showRatings(username, ratings);
+          validateRequestedRatings(selectedType, ratings);
+
+          setStatus("Loading the registration match list...");
+          const clubMatches = await loadJSON(CLUB_MATCHES_URL);
+          const registrationMatches = Array.isArray(clubMatches.registered)
+            ? clubMatches.registered.filter(item => String(item?.time_class || "").toLowerCase() === "daily")
+            : [];
+
+          const totalMatches = registrationMatches.length;
+          const eligibleMatches = [];
+          let failedCount = 0;
+
+          if (totalMatches === 0) {
+            setStatus("There are currently no daily matches open for registration.", "success");
+            displayResults([], username, 0);
+            return;
           }
 
-          const matchDetails = await loadJSON(listItem["@id"]);
+          for (let index = 0; index < totalMatches; index += 1) {
+            const currentNumber = index + 1;
+            const listItem = registrationMatches[index];
+            const percentage = Math.round((currentNumber / totalMatches) * 100);
 
-          loadedMatches.push({
-            ...listItem,
-            ...matchDetails
-          });
-        } catch (error) {
-          failedCount++;
-          console.error(
-            "Unable to load match " + currentNumber,
-            listItem,
-            error
+            setStatus(`Processing match ${currentNumber} of ${totalMatches}`, "working", percentage);
+            await allowScreenUpdate();
+
+            try {
+              if (!listItem?.["@id"]) throw new Error("The match has no @id URL.");
+
+              const matchDetails = await loadJSON(listItem["@id"]);
+              const match = { ...listItem, ...matchDetails };
+
+              if (!isSupportedDailyMatch(match)) continue;
+              if (!matchesTypeSelection(match, selectedType)) continue;
+
+              const team = findPromoteToKingTeam(match);
+              if (!team || !isTeamUnlocked(team)) continue;
+
+              const rating = ratingForMatch(match, ratings);
+              const bounds = getRatingBounds(match);
+              if (!isRatingEligible(rating, bounds)) continue;
+
+              eligibleMatches.push({ match, team, rating, bounds });
+            } catch (error) {
+              failedCount += 1;
+              console.error(`Unable to load match ${currentNumber}`, listItem, error);
+            }
+          }
+
+          setStatus(
+            `Processing completed: ${totalMatches - failedCount} of ${totalMatches} matches loaded.`,
+            "success",
+            100
           );
+          displayResults(eligibleMatches, username, failedCount);
+        } catch (error) {
+          console.error(error);
+
+          if (error instanceof HttpError && error.status === 404) {
+            setStatus("The Chess.com user name was not found.", "error");
+          } else {
+            setStatus(error?.message || "Unable to complete the search. Please try again later.", "error");
+          }
+        } finally {
+          searchButton.disabled = false;
         }
       }
 
-      const filteredMatches = loadedMatches.filter(match =>
-        matchesSelectedType(match, matchType)
-      );
+      searchButton.addEventListener("click", searchMatches);
+      usernameInput.addEventListener("keydown", event => {
+        if (event.key === "Enter") searchMatches();
+      });
 
-      progressBox.style.color = "#8fd68f";
-      progressBox.textContent =
-        "Processing completed: " +
-        loadedMatches.length +
-        " of " +
-        totalMatches +
-        " matches loaded.";
+      function reportHeight() {
+        if (window.parent === window) return;
+        window.parent.postMessage(
+          {
+            type: "p2k-match-finder-height",
+            height: Math.ceil(document.documentElement.scrollHeight)
+          },
+          "*"
+        );
+      }
 
-      displayResults(filteredMatches, nickname, failedCount);
-
-    } catch (error) {
-      console.error(error);
-
-      progressBox.style.color = "#ff9a82";
-      progressBox.textContent =
-        "Unable to load the match list. Please try again later.";
-
-    } finally {
-      searchButton.disabled = false;
-      searchButton.style.opacity = "1";
-      searchButton.style.cursor = "pointer";
-    }
-  }
-
-  searchButton.addEventListener("click", searchMatches);
-
-  nicknameInput.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
-      searchMatches();
-    }
-  });
-})();
-</script>
+      if ("ResizeObserver" in window) {
+        new ResizeObserver(reportHeight).observe(document.body);
+      }
+      window.addEventListener("load", reportHeight);
+    })();
+  </script>
+</body>
+</html>
