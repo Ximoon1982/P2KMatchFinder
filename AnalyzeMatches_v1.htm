@@ -1,3 +1,4 @@
+<!-- Promote to King Upcoming Matches Analyzer - Version 1 -->
 <div id="p2kUpcomingAnalyzer" class="p2k-analyzer">
   <div class="p2k-header">
     <h2>Promote to King Upcoming Matches Analyzer</h2>
@@ -379,6 +380,7 @@
   const REQUEST_ATTEMPTS = 3;
   const JSONP_TIMEOUT_MS = 20000;
   const LEAGUE_ACRONYMS = ["1WL", "TCMAC", "KOTML", "TMCL", "WKCL", "PCL", "CW"];
+  const SIGNIFICANT_P2K_LINEUP_ADVANTAGE = 100;
 
   const root = document.getElementById("p2kUpcomingAnalyzer");
   const analyzeButton = document.getElementById("p2kAnalyzeButton");
@@ -622,7 +624,17 @@
     const leagueMatches = matchingLeagueAcronyms(match?.name);
     const priorityReasons = [];
 
-    if (leagueMatches.length > 0) {
+    /*
+     * A league acronym normally makes the match a priority. However, when
+     * P2K already has a significant projected lineup advantage, the league
+     * criterion alone does not turn the match into a priority. Other risk
+     * criteria below can still make it a priority.
+     */
+    const hasSignificantP2KLineupAdvantage =
+      lineupComparison &&
+      lineupComparison.opponentAdvantage <= -SIGNIFICANT_P2K_LINEUP_ADVANTAGE;
+
+    if (leagueMatches.length > 0 && !hasSignificantP2KLineupAdvantage) {
       priorityReasons.push(`League match: ${leagueMatches.join(", ")}.`);
     }
 
