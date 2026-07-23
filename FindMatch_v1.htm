@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King matches Explorer</title>
-  <!-- Version 7: interface title and filter layout update -->
+  <!-- Version 8: max-team-player selection and expanded recommendation rules -->
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -572,7 +572,7 @@
           : null;
       }
 
-      function numericPlayerRatings(team, excludedUsername = null) {
+      function numericPlayerEntries(team, excludedUsername = null, bounds = null) {
         const normalizedExcluded = excludedUsername === null ? null : excludedUsername.toLowerCase();
 
         return (Array.isArray(team?.players) ? team.players : [])
@@ -580,11 +580,75 @@
           .map(player => {
             const rawRating = player?.rating;
             if (rawRating === undefined || rawRating === null || rawRating === "") return null;
-            const parsedRating = Number(rawRating);
-            return Number.isFinite(parsedRating) ? parsedRating : null;
+            const rating = Number(rawRating);
+            if (!Number.isFinite(rating)) return null;
+            if (bounds && (rating < bounds.minimum || rating > bounds.maximum)) return null;
+
+            return {
+              username: String(player?.username || ""),
+              rating
+            };
           })
-          .filter(rating => rating !== null)
-          .sort((a, b) => b - a);
+          .filter(Boolean)
+          .sort((a, b) => b.rating - a.rating || a.username.localeCompare(b.username));
+      }
+
+      function numericPlayerRatings(team, excludedUsername = null, bounds = null) {
+        return numericPlayerEntries(team, excludedUsername, bounds).map(player => player.rating);
+      }
+
+      function getMaximumTeamPlayers(match) {
+        const value = Number(match?.settings?.max_team_players);
+        return Number.isFinite(value) && value > 0 ? Math.floor(value) : Number.POSITIVE_INFINITY;
+      }
+
+      function getMinimumTeamPlayers(match) {
+        const value = Number(match?.settings?.min_team_players);
+        return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+      }
+
+      function limitLineupRatings(ratings, maximumPlayers) {
+        if (!Number.isFinite(maximumPlayers)) return [...ratings];
+        return ratings.slice(0, Math.max(0, maximumPlayers));
+      }
+
+      function projectedLineupWithUser(team, username, rating, maximumPlayers, alreadyRegistered) {
+        if (rating === null || !Number.isFinite(Number(rating))) {
+          return { selected: false, ratings: limitLineupRatings(numericPlayerRatings(team), maximumPlayers) };
+        }
+
+        const normalizedUsername = username.toLowerCase();
+        const basePlayers = numericPlayerEntries(team, alreadyRegistered ? username : null);
+        const higherRatedCount = basePlayers.filter(player => player.rating > rating).length;
+        const selected = !Number.isFinite(maximumPlayers) || higherRatedCount < maximumPlayers;
+
+        const projectedPlayers = [
+          ...basePlayers,
+          { username: normalizedUsername, rating: Number(rating), candidate: true }
+        ].sort((a, b) => {
+          const ratingDifference = b.rating - a.rating;
+          if (ratingDifference !== 0) return ratingDifference;
+          if (a.candidate && !b.candidate) return -1;
+          if (!a.candidate && b.candidate) return 1;
+          return a.username.localeCompare(b.username);
+        });
+
+        return {
+          selected,
+          ratings: limitLineupRatings(projectedPlayers.map(player => player.rating), maximumPlayers)
+        };
+      }
+
+      function registeredUserIsSelected(team, username, rating, maximumPlayers) {
+        if (rating === null || !Number.isFinite(Number(rating))) return false;
+        if (!Number.isFinite(maximumPlayers)) return true;
+
+        const otherPlayers = numericPlayerEntries(team, username);
+        return otherPlayers.filter(player => player.rating > Number(rating)).length < maximumPlayers;
+      }
+
+      function countEligibleRegisteredPlayers(team, bounds) {
+        return numericPlayerEntries(team, null, bounds).length;
       }
 
       function pairedLineupAdvantage(promoteRatings, opponentRatings) {
@@ -607,14 +671,25 @@
         };
       }
 
-      function evaluateRecommendation(match, promoteTeam, username, profileRating, registered) {
+      function evaluateRecommendation(match, promoteTeam, username, profileRating, registered, bounds) {
         const opponentTeam = findOpponentTeam(match, promoteTeam);
         const promotePlayers = Array.isArray(promoteTeam?.players) ? promoteTeam.players : [];
         const opponentPlayers = Array.isArray(opponentTeam?.players) ? opponentTeam.players : [];
         const reasons = [];
+        const maximumPlayers = getMaximumTeamPlayers(match);
+        const minimumPlayers = getMinimumTeamPlayers(match);
+        const eligiblePromotePlayers = countEligibleRegisteredPlayers(promoteTeam, bounds);
 
         if (!opponentTeam) {
-          return { recommended: false, reasons, opponentTeam: null };
+          return {
+            recommended: false,
+            reasons,
+            opponentTeam: null,
+            lineupSelected: false,
+            eligiblePromotePlayers,
+            minimumPlayers,
+            maximumPlayers
+          };
         }
 
         const playerCountReason = opponentPlayers.length > promotePlayers.length;
@@ -625,18 +700,30 @@
           );
         }
 
-        const opponentRatings = numericPlayerRatings(opponentTeam);
-        const promoteRatings = numericPlayerRatings(promoteTeam);
+        const minimumPlayersReason = minimumPlayers > 0 && eligiblePromotePlayers < minimumPlayers;
+        if (minimumPlayersReason) {
+          reasons.push(
+            `Promote to King has ${eligiblePromotePlayers} eligible registered player${eligiblePromotePlayers === 1 ? "" : "s"}; ` +
+            `the match requires at least ${minimumPlayers}.`
+          );
+        }
+
+        const opponentRatings = limitLineupRatings(numericPlayerRatings(opponentTeam), maximumPlayers);
+        const promoteRatings = limitLineupRatings(numericPlayerRatings(promoteTeam), maximumPlayers);
         let ratingReason = false;
+        let lineupSelected = false;
 
         if (registered) {
+          lineupSelected = registeredUserIsSelected(promoteTeam, username, profileRating, maximumPlayers);
           const currentComparison = pairedLineupAdvantage(promoteRatings, opponentRatings);
-          const comparisonWithoutUser = pairedLineupAdvantage(
+          const lineupWithoutUser = limitLineupRatings(
             numericPlayerRatings(promoteTeam, username),
-            opponentRatings
+            maximumPlayers
           );
+          const comparisonWithoutUser = pairedLineupAdvantage(lineupWithoutUser, opponentRatings);
 
           if (
+            lineupSelected &&
             currentComparison !== null &&
             comparisonWithoutUser !== null &&
             currentComparison.opponentAdvantage > 0 &&
@@ -647,16 +734,24 @@
               comparisonWithoutUser.opponentAdvantage - currentComparison.opponentAdvantage
             ));
             reasons.push(
-              `The opponent's paired lineup averages ${Math.max(1, Math.round(currentComparison.opponentAdvantage))} rating points higher; ` +
-              `this user's registration improves the projected matchup by about ${improvement} point${improvement === 1 ? "" : "s"}.`
+              `The opponent's selected lineup averages ${Math.max(1, Math.round(currentComparison.opponentAdvantage))} rating points higher; ` +
+              `this user's place in the lineup improves the projected matchup by about ${improvement} point${improvement === 1 ? "" : "s"}.`
             );
           }
-        } else if (profileRating !== null) {
+        } else {
+          const projected = projectedLineupWithUser(
+            promoteTeam,
+            username,
+            profileRating,
+            maximumPlayers,
+            false
+          );
+          lineupSelected = projected.selected;
           const currentComparison = pairedLineupAdvantage(promoteRatings, opponentRatings);
-          const simulatedPromoteRatings = [...promoteRatings, profileRating].sort((a, b) => b - a);
-          const comparisonWithUser = pairedLineupAdvantage(simulatedPromoteRatings, opponentRatings);
+          const comparisonWithUser = pairedLineupAdvantage(projected.ratings, opponentRatings);
 
           if (
+            lineupSelected &&
             currentComparison !== null &&
             comparisonWithUser !== null &&
             currentComparison.opponentAdvantage > 0 &&
@@ -667,16 +762,20 @@
               currentComparison.opponentAdvantage - comparisonWithUser.opponentAdvantage
             ));
             reasons.push(
-              `The opponent's paired lineup currently averages ${Math.max(1, Math.round(currentComparison.opponentAdvantage))} rating points higher; ` +
+              `The opponent's selected lineup currently averages ${Math.max(1, Math.round(currentComparison.opponentAdvantage))} rating points higher; ` +
               `joining improves the projected matchup by about ${improvement} point${improvement === 1 ? "" : "s"}.`
             );
           }
         }
 
         return {
-          recommended: playerCountReason || ratingReason,
+          recommended: playerCountReason || ratingReason || minimumPlayersReason,
           reasons,
-          opponentTeam
+          opponentTeam,
+          lineupSelected,
+          eligiblePromotePlayers,
+          minimumPlayers,
+          maximumPlayers
         };
       }
 
@@ -788,9 +887,9 @@
           if (registrationStatus === "registered") {
             emptyMessage = "This user is not registered in any open match matching the selected filters.";
           } else if (registrationStatus === "not_registered") {
-            emptyMessage = "No unlocked, rating-eligible, unregistered match corresponds to the selected filters.";
+            emptyMessage = "No unlocked, rating-eligible, lineup-selected, unregistered match corresponds to the selected filters.";
           } else if (registrationStatus === "all") {
-            emptyMessage = "No unlocked, rating-eligible match corresponds to the selected filters.";
+            emptyMessage = "No unlocked, rating-eligible, lineup-selected match corresponds to the selected filters.";
           }
 
           resultsBox.innerHTML = `<div class="empty">${escapeHTML(emptyMessage)}</div>`;
@@ -825,7 +924,7 @@
               ` · <span class="override-text">Shown regardless of team lock and rating limits</span>`;
           } else {
             statusLine =
-              `<span class="eligible">Eligible and registration unlocked for Promote to King</span>` +
+              `<span class="eligible">Eligible, registration unlocked, and projected in the playing lineup</span>` +
               (registered
                 ? ` · <span class="registered-text">${escapeHTML(username)} is already registered</span>`
                 : ` · ${escapeHTML(username)} is not registered`);
@@ -918,7 +1017,7 @@
             .filter(entry => recommendationFilter !== "recommended" || entry.recommendation.recommended)
             .filter(entry => {
               if (registrationStatus === "registered") return entry.registered;
-              if (!entry.unlocked || !entry.ratingEligible) return false;
+              if (!entry.unlocked || !entry.ratingEligible || !entry.lineupSelected) return false;
               if (registrationStatus === "not_registered") return !entry.registered;
               return true;
             })
@@ -1037,7 +1136,8 @@
                 team,
                 username,
                 recommendationRating,
-                registered
+                registered,
+                bounds
               );
 
               processedEntries.push({
@@ -1048,6 +1148,7 @@
                 registered,
                 unlocked: isTeamUnlocked(team),
                 ratingEligible: isRatingEligible(rating, bounds),
+                lineupSelected: recommendation.lineupSelected,
                 recommendation
               });
             } catch (error) {
