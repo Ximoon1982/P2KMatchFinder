@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Match Assistant</title>
-  <!-- Version 15: cancel control aligned with processing status above the progress bar -->
+  <!-- Version 16: verify Promote to King membership before match analysis -->
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -1332,6 +1332,19 @@
           const clubsUrl = `https://api.chess.com/pub/player/${encodeURIComponent(usernameKey)}/clubs`;
           const clubsResponse = await loadJSON(clubsUrl, run.controller.signal);
           const playerClubMemberships = buildPlayerClubMembershipSet(clubsResponse);
+          const promoteToKingClubId = normalizeClubReference(
+            `https://www.chess.com/club/${CLUB_ID}`
+          );
+
+          if (!playerClubMemberships.has(promoteToKingClubId)) {
+            processedCache = null;
+            resultsBox.innerHTML = "";
+            setStatus(
+              `${username} is not a member of Promote to King. Match analysis has been cancelled.`,
+              "error"
+            );
+            return;
+          }
 
           setStatus("Loading the registration match list...");
           const clubMatches = await loadJSON(CLUB_MATCHES_URL, run.controller.signal);
