@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Promote to King matches Explorer</title>
-  <!-- Version 9: exclude matches against clubs the user belongs to -->
+  <title>Promote to King Match Assistant</title>
+  <!-- Version 10: refreshed header, logo vignette, default-first filters, and hover help -->
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -31,17 +31,31 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
     }
 
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
     .title {
-      margin: 0 0 16px;
+      margin: 4px 0 0;
       color: #f6b73c;
       font-size: 22px;
       font-weight: 700;
+      line-height: 1.25;
     }
 
-    .field-label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 700;
+    .club-logo {
+      width: 58px;
+      height: 58px;
+      flex: 0 0 58px;
+      object-fit: cover;
+      border: 2px solid rgba(246, 183, 60, .75);
+      border-radius: 12px;
+      background: #111;
+      box-shadow: 0 5px 14px rgba(0, 0, 0, .4);
     }
 
     .username {
@@ -62,7 +76,7 @@
     .filters-heading {
       margin: 18px 0 2px;
       color: #f6b73c;
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 700;
     }
 
@@ -70,6 +84,7 @@
       margin: 14px 0 0;
       padding: 0;
       border: 0;
+      font-size: 15px;
     }
 
     .filter-group + .filter-group { margin-top: 14px; }
@@ -78,7 +93,7 @@
       margin: 0 0 8px;
       padding: 0;
       color: #d7d2cb;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 700;
     }
 
@@ -280,9 +295,16 @@
 </head>
 <body>
   <main id="p2kMatchSearch" class="finder">
-    <h1 class="title">Promote to King matches Explorer</h1>
+    <div class="header">
+      <h1 class="title">Promote to King Match Assistant</h1>
+      <img
+        class="club-logo"
+        src="p2k-logo.jpg"
+        alt="Promote to King club logo"
+        title="Promote to King club logo"
+      >
+    </div>
 
-    <label class="field-label" for="p2kUsername">Please enter your user name</label>
     <input
       id="p2kUsername"
       class="username"
@@ -291,62 +313,70 @@
       autocapitalize="none"
       spellcheck="false"
       placeholder="Chess.com user name"
+      aria-label="Chess.com user name"
+      title="Enter the Chess.com user name whose ratings, registrations, and club memberships should be checked."
     >
 
-    <button id="p2kSearchButton" class="search-button" type="button" style="margin-top:12px">Explore matches</button>
+    <button
+      id="p2kSearchButton"
+      class="search-button"
+      type="button"
+      style="margin-top:12px"
+      title="Load the player's ratings and clubs, process all open Promote to King matches, and display the matching results."
+    >Explore matches</button>
 
     <div class="filters-heading">Fliter</div>
 
-    <fieldset class="filter-group">
+    <fieldset class="filter-group" title="Choose which daily chess format to display.">
       <legend class="filter-title">Match type</legend>
       <div class="choices">
-        <label class="choice">
-          <input type="radio" name="p2kMatchType" value="classical">
+        <label class="choice" title="Show both classical Daily and Daily Chess 960 matches.">
+          <input type="radio" name="p2kMatchType" value="all" checked title="Show all supported daily match formats.">
+          <span>All daily matches</span>
+        </label>
+
+        <label class="choice" title="Show standard Daily chess matches only.">
+          <input type="radio" name="p2kMatchType" value="classical" title="Show classical Daily chess matches only.">
           <span>Classical chess matches</span>
         </label>
 
-        <label class="choice">
-          <input type="radio" name="p2kMatchType" value="chess960">
+        <label class="choice" title="Show Daily Chess 960 matches only.">
+          <input type="radio" name="p2kMatchType" value="chess960" title="Show Daily Chess 960 matches only.">
           <span>Chess 960 matches</span>
-        </label>
-
-        <label class="choice">
-          <input type="radio" name="p2kMatchType" value="all" checked>
-          <span>All daily matches</span>
         </label>
       </div>
     </fieldset>
 
-    <fieldset class="filter-group">
+    <fieldset class="filter-group" title="Choose whether to show matches based on the player's registration status.">
       <legend class="filter-title">Registration status</legend>
       <div class="choices">
-        <label class="choice">
-          <input type="radio" name="p2kRegistrationStatus" value="registered">
-          <span>Registered</span>
-        </label>
-
-        <label class="choice">
-          <input type="radio" name="p2kRegistrationStatus" value="not_registered" checked>
+        <label class="choice" title="Show matches in which the player is not currently registered.">
+          <input type="radio" name="p2kRegistrationStatus" value="not_registered" checked title="Show unregistered matches only.">
           <span>Not registered</span>
         </label>
 
-        <label class="choice">
-          <input type="radio" name="p2kRegistrationStatus" value="all">
+        <label class="choice" title="Show matches in which the player is already registered, regardless of lock, rating, or lineup limits.">
+          <input type="radio" name="p2kRegistrationStatus" value="registered" title="Show registered matches only.">
+          <span>Registered</span>
+        </label>
+
+        <label class="choice" title="Show both registered and unregistered matches that satisfy the applicable rules.">
+          <input type="radio" name="p2kRegistrationStatus" value="all" title="Show all registration statuses.">
           <span>All matches</span>
         </label>
       </div>
     </fieldset>
 
-    <fieldset class="filter-group">
+    <fieldset class="filter-group" title="Choose whether to restrict the list to matches where the player's participation would be useful.">
       <legend class="filter-title">Recommendation filter</legend>
       <div class="choices">
-        <label class="choice">
-          <input type="radio" name="p2kRecommendationFilter" value="recommended" checked>
+        <label class="choice" title="Show only matches flagged as recommended by team size, lineup rating, or minimum-player needs.">
+          <input type="radio" name="p2kRecommendationFilter" value="recommended" checked title="Show recommended matches only.">
           <span>Recommended matches</span>
         </label>
 
-        <label class="choice">
-          <input type="radio" name="p2kRecommendationFilter" value="all">
+        <label class="choice" title="Show recommended and non-recommended matches.">
+          <input type="radio" name="p2kRecommendationFilter" value="all" title="Show all matches regardless of recommendation status.">
           <span>All matches</span>
         </label>
       </div>
@@ -988,8 +1018,8 @@
         if (visibleCount < total) {
           html +=
             `<div class="result-controls">` +
-              `<button id="p2kLoadMore" class="load-button" type="button">Load 5 more</button>` +
-              `<button id="p2kLoadAll" class="load-button secondary" type="button">Load all</button>` +
+              `<button id="p2kLoadMore" class="load-button" type="button" title="Display the next five matching results without reloading the API.">Load 5 more</button>` +
+              `<button id="p2kLoadAll" class="load-button secondary" type="button" title="Display every matching result without reloading the API.">Load all</button>` +
             `</div>`;
         }
 
