@@ -187,6 +187,13 @@
 
     .match-card.registered { border-left-color: #61b861; }
 
+    .match-card.priority {
+      border-left-color: #d94a3a;
+      background: linear-gradient(90deg, rgba(217, 74, 58, .13), rgba(255, 255, 255, .055) 42%);
+    }
+
+    .match-card.priority .match-title { color: #ff725f; }
+
     .match-title {
       display: inline-block;
       margin-bottom: 7px;
@@ -293,6 +300,7 @@
       const CLUB_MATCHES_URL = `https://api.chess.com/pub/club/${CLUB_ID}/matches`;
       const REQUEST_ATTEMPTS = 3;
       const JSONP_TIMEOUT_MS = 20000;
+      const PRIORITY_LEAGUE_ACRONYMS = ["1WL", "TCMAC", "KOTML", "TMCL", "WKCL", "PCL"];
 
       const usernameInput = document.getElementById("p2kUsername");
       const searchButton = document.getElementById("p2kSearchButton");
@@ -496,6 +504,11 @@
         return getMatchRules(match) === "chess960" ? "Chess 960" : "Classical chess";
       }
 
+      function isPriorityMatch(match) {
+        const name = String(match?.name || "").toUpperCase();
+        return PRIORITY_LEAGUE_ACRONYMS.some(acronym => name.includes(acronym));
+      }
+
       function matchStartTimestamp(match) {
         const value = Number(match?.start_time);
         return Number.isFinite(value) && value > 0 ? value : null;
@@ -558,6 +571,9 @@
         }
 
         const sortedMatches = [...matches].sort((a, b) => {
+          const priorityDifference = Number(isPriorityMatch(b.match)) - Number(isPriorityMatch(a.match));
+          if (priorityDifference !== 0) return priorityDifference;
+
           const aStart = matchStartTimestamp(a.match) ?? Number.POSITIVE_INFINITY;
           const bStart = matchStartTimestamp(b.match) ?? Number.POSITIVE_INFINITY;
           return aStart - bStart || String(a.match?.name || "").localeCompare(String(b.match?.name || ""));
@@ -594,8 +610,10 @@
                 : ` · ${escapeHTML(username)} is not registered`);
           }
 
+          const priority = isPriorityMatch(match);
+
           html +=
-            `<article class="match-card${registered ? " registered" : ""}">` +
+            `<article class="match-card${registered ? " registered" : ""}${priority ? " priority" : ""}">` +
               `<a class="match-title" href="${matchUrl}" target="_blank" rel="noopener noreferrer">${matchName}</a>` +
               `<div class="match-details">` +
                 `<span class="start-date">Start: ${startDate}</span><br>` +
