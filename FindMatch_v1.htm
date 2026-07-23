@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King matches Explorer</title>
-  <!-- Version 8: max-team-player selection and expanded recommendation rules -->
+  <!-- Version 9: exclude matches against clubs the user belongs to -->
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -554,6 +554,44 @@
         return Object.values(match?.teams || {}).find(team => team !== promoteToKingTeam) || null;
       }
 
+      function normalizeClubReference(value) {
+        const rawValue = String(value || "").trim();
+        if (!rawValue) return "";
+
+        try {
+          const parsedUrl = new URL(rawValue, "https://www.chess.com");
+          const path = parsedUrl.pathname.replace(/\/+$/, "").toLowerCase();
+          const apiMatch = path.match(/\/pub\/club\/([^/?#]+)/);
+          const webMatch = path.match(/\/club\/([^/?#]+)/);
+          const clubId = apiMatch?.[1] || webMatch?.[1] || "";
+          return clubId ? decodeURIComponent(clubId).toLowerCase() : path;
+        } catch (_) {
+          return rawValue.toLowerCase().replace(/\/+$/, "");
+        }
+      }
+
+      function buildPlayerClubMembershipSet(clubsResponse) {
+        const memberships = new Set();
+
+        for (const club of Array.isArray(clubsResponse?.clubs) ? clubsResponse.clubs : []) {
+          for (const reference of [club?.["@id"], club?.url]) {
+            const normalizedReference = normalizeClubReference(reference);
+            if (normalizedReference) memberships.add(normalizedReference);
+          }
+        }
+
+        return memberships;
+      }
+
+      function userBelongsToTeamClub(team, playerClubMemberships) {
+        if (!team || !(playerClubMemberships instanceof Set)) return false;
+
+        return [team?.["@id"], team?.url].some(reference => {
+          const normalizedReference = normalizeClubReference(reference);
+          return normalizedReference !== "" && playerClubMemberships.has(normalizedReference);
+        });
+      }
+
       function isTeamUnlocked(team) {
         return team?.locked === false;
       }
@@ -1080,6 +1118,11 @@
 
           showRatings(username, ratings);
 
+          setStatus(`Loading club memberships for ${username}...`);
+          const clubsUrl = `https://api.chess.com/pub/player/${encodeURIComponent(usernameKey)}/clubs`;
+          const clubsResponse = await loadJSON(clubsUrl);
+          const playerClubMemberships = buildPlayerClubMembershipSet(clubsResponse);
+
           setStatus("Loading the registration match list...");
           const clubMatches = await loadJSON(CLUB_MATCHES_URL);
           const registrationMatches = Array.isArray(clubMatches.registered)
@@ -1089,6 +1132,7 @@
           const totalMatches = registrationMatches.length;
           const processedEntries = [];
           let failedCount = 0;
+          let opponentClubExcludedCount = 0;
 
           if (totalMatches === 0) {
             processedCache = {
@@ -1097,6 +1141,8 @@
               ratings,
               entries: [],
               failedCount: 0,
+              opponentClubExcludedCount: 0,
+              playerClubCount: playerClubMemberships.size,
               totalMatches: 0,
               processedAt: Date.now()
             };
@@ -1124,6 +1170,12 @@
 
               const team = findPromoteToKingTeam(match);
               if (!team) continue;
+
+              const opponentTeam = findOpponentTeam(match, team);
+              if (userBelongsToTeamClub(opponentTeam, playerClubMemberships)) {
+                opponentClubExcludedCount += 1;
+                continue;
+              }
 
               const registered = isUserRegistered(team, username);
               const rating = ratingForMatch(match, ratings);
@@ -1163,12 +1215,18 @@
             ratings,
             entries: processedEntries,
             failedCount,
+            opponentClubExcludedCount,
+            playerClubCount: playerClubMemberships.size,
             totalMatches,
             processedAt: Date.now()
           };
 
+          const opponentClubMessage = opponentClubExcludedCount > 0
+            ? ` ${opponentClubExcludedCount} match${opponentClubExcludedCount === 1 ? " was" : "es were"} hidden because ${username} belongs to the opponent club.`
+            : "";
+
           setStatus(
-            `Processing completed: ${totalMatches - failedCount} of ${totalMatches} matches loaded.`,
+            `Processing completed: ${totalMatches - failedCount} of ${totalMatches} matches loaded.${opponentClubMessage}`,
             "success",
             100
           );
