@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King — Open Daily Match Finder</title>
+  <!-- Version 5: recommendations and paginated results -->
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -216,6 +217,52 @@
     .override-text { color: #ffd078; font-weight: 700; }
     .start-date { color: #f0e4cf; font-weight: 700; }
 
+    .recommendation-line {
+      margin-top: 7px;
+      color: #bfe7c3;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .recommended-badge {
+      display: inline-block;
+      margin-right: 5px;
+      padding: 2px 7px;
+      border: 1px solid rgba(104, 202, 116, .55);
+      border-radius: 999px;
+      background: rgba(80, 175, 92, .13);
+      color: #91e09a;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .01em;
+    }
+
+    .result-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .load-button {
+      padding: 9px 15px;
+      border: 1px solid rgba(246, 183, 60, .55);
+      border-radius: 7px;
+      background: rgba(217, 141, 24, .16);
+      color: #ffd078;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .load-button:hover { filter: brightness(1.12); }
+
+    .load-button.secondary {
+      border-color: rgba(255, 255, 255, .25);
+      background: rgba(255, 255, 255, .06);
+      color: #ddd5ca;
+    }
+
     @media (max-width: 540px) {
       body { padding: 6px; }
       .finder { padding: 16px; }
@@ -279,6 +326,21 @@
       </div>
     </fieldset>
 
+    <fieldset class="filter-group">
+      <legend class="filter-title">Recommendation filter</legend>
+      <div class="choices">
+        <label class="choice">
+          <input type="radio" name="p2kRecommendationFilter" value="recommended" checked>
+          <span>Recommended matches</span>
+        </label>
+
+        <label class="choice">
+          <input type="radio" name="p2kRecommendationFilter" value="all">
+          <span>All matches</span>
+        </label>
+      </div>
+    </fieldset>
+
     <button id="p2kSearchButton" class="search-button" type="button" style="margin-top:16px">Search</button>
 
     <div id="p2kStatus" class="status" aria-live="polite">
@@ -300,6 +362,7 @@
       const CLUB_MATCHES_URL = `https://api.chess.com/pub/club/${CLUB_ID}/matches`;
       const REQUEST_ATTEMPTS = 3;
       const JSONP_TIMEOUT_MS = 20000;
+      const PAGE_SIZE = 5;
       const PRIORITY_LEAGUE_ACRONYMS = ["1WL", "TCMAC", "KOTML", "TMCL", "WKCL", "PCL"];
 
       const usernameInput = document.getElementById("p2kUsername");
@@ -310,6 +373,14 @@
       const progressBar = document.getElementById("p2kProgressBar");
       const ratingsBox = document.getElementById("p2kRatings");
       const resultsBox = document.getElementById("p2kResults");
+
+      let resultState = {
+        matches: [],
+        username: "",
+        failedCount: 0,
+        registrationStatus: "not_registered",
+        visibleCount: PAGE_SIZE
+      };
 
       class HttpError extends Error {
         constructor(status, url) {
@@ -352,6 +423,10 @@
 
       function selectedRegistrationStatus() {
         return document.querySelector('input[name="p2kRegistrationStatus"]:checked')?.value || "not_registered";
+      }
+
+      function selectedRecommendationFilter() {
+        return document.querySelector('input[name="p2kRecommendationFilter"]:checked')?.value || "recommended";
       }
 
       function appendCallbackParameter(url, callbackName) {
@@ -459,6 +534,10 @@
         }) || null;
       }
 
+      function findOpponentTeam(match, promoteToKingTeam) {
+        return Object.values(match?.teams || {}).find(team => team !== promoteToKingTeam) || null;
+      }
+
       function isTeamUnlocked(team) {
         return team?.locked === false;
       }
@@ -468,6 +547,121 @@
         return Array.isArray(team?.players) && team.players.some(player =>
           String(player?.username || "").toLowerCase() === normalizedUsername
         );
+      }
+
+      function findRegisteredPlayer(team, username) {
+        const normalizedUsername = username.toLowerCase();
+        return Array.isArray(team?.players)
+          ? team.players.find(player => String(player?.username || "").toLowerCase() === normalizedUsername) || null
+          : null;
+      }
+
+      function numericPlayerRatings(team, excludedUsername = null) {
+        const normalizedExcluded = excludedUsername === null ? null : excludedUsername.toLowerCase();
+
+        return (Array.isArray(team?.players) ? team.players : [])
+          .filter(player => normalizedExcluded === null || String(player?.username || "").toLowerCase() !== normalizedExcluded)
+          .map(player => {
+            const rawRating = player?.rating;
+            if (rawRating === undefined || rawRating === null || rawRating === "") return null;
+            const parsedRating = Number(rawRating);
+            return Number.isFinite(parsedRating) ? parsedRating : null;
+          })
+          .filter(rating => rating !== null)
+          .sort((a, b) => b - a);
+      }
+
+      function pairedLineupAdvantage(promoteRatings, opponentRatings) {
+        const boardCount = Math.min(promoteRatings.length, opponentRatings.length);
+        if (boardCount === 0) return null;
+
+        let promoteTotal = 0;
+        let opponentTotal = 0;
+
+        for (let index = 0; index < boardCount; index += 1) {
+          promoteTotal += promoteRatings[index];
+          opponentTotal += opponentRatings[index];
+        }
+
+        return {
+          boardCount,
+          promoteAverage: promoteTotal / boardCount,
+          opponentAverage: opponentTotal / boardCount,
+          opponentAdvantage: (opponentTotal - promoteTotal) / boardCount
+        };
+      }
+
+      function evaluateRecommendation(match, promoteTeam, username, profileRating, registered) {
+        const opponentTeam = findOpponentTeam(match, promoteTeam);
+        const promotePlayers = Array.isArray(promoteTeam?.players) ? promoteTeam.players : [];
+        const opponentPlayers = Array.isArray(opponentTeam?.players) ? opponentTeam.players : [];
+        const reasons = [];
+
+        if (!opponentTeam) {
+          return { recommended: false, reasons, opponentTeam: null };
+        }
+
+        const playerCountReason = opponentPlayers.length > promotePlayers.length;
+        if (playerCountReason) {
+          reasons.push(
+            `${opponentTeam.name || "The opponent"} has ${opponentPlayers.length} registered player${opponentPlayers.length === 1 ? "" : "s"}; ` +
+            `Promote to King has ${promotePlayers.length}.`
+          );
+        }
+
+        const opponentRatings = numericPlayerRatings(opponentTeam);
+        const promoteRatings = numericPlayerRatings(promoteTeam);
+        let ratingReason = false;
+
+        if (registered) {
+          const currentComparison = pairedLineupAdvantage(promoteRatings, opponentRatings);
+          const comparisonWithoutUser = pairedLineupAdvantage(
+            numericPlayerRatings(promoteTeam, username),
+            opponentRatings
+          );
+
+          if (
+            currentComparison !== null &&
+            comparisonWithoutUser !== null &&
+            currentComparison.opponentAdvantage > 0 &&
+            comparisonWithoutUser.opponentAdvantage > currentComparison.opponentAdvantage
+          ) {
+            ratingReason = true;
+            const improvement = Math.max(1, Math.round(
+              comparisonWithoutUser.opponentAdvantage - currentComparison.opponentAdvantage
+            ));
+            reasons.push(
+              `The opponent's paired lineup averages ${Math.max(1, Math.round(currentComparison.opponentAdvantage))} rating points higher; ` +
+              `this user's registration improves the projected matchup by about ${improvement} point${improvement === 1 ? "" : "s"}.`
+            );
+          }
+        } else if (profileRating !== null) {
+          const currentComparison = pairedLineupAdvantage(promoteRatings, opponentRatings);
+          const simulatedPromoteRatings = [...promoteRatings, profileRating].sort((a, b) => b - a);
+          const comparisonWithUser = pairedLineupAdvantage(simulatedPromoteRatings, opponentRatings);
+
+          if (
+            currentComparison !== null &&
+            comparisonWithUser !== null &&
+            currentComparison.opponentAdvantage > 0 &&
+            comparisonWithUser.opponentAdvantage < currentComparison.opponentAdvantage
+          ) {
+            ratingReason = true;
+            const improvement = Math.max(1, Math.round(
+              currentComparison.opponentAdvantage - comparisonWithUser.opponentAdvantage
+            ));
+            reasons.push(
+              `The opponent's paired lineup currently averages ${Math.max(1, Math.round(currentComparison.opponentAdvantage))} rating points higher; ` +
+              `joining improves the projected matchup by about ${improvement} point${improvement === 1 ? "" : "s"}.`
+            );
+          }
+        }
+
+        return {
+          recommended: playerCountReason || ratingReason,
+          reasons,
+          opponentTeam
+        };
       }
 
       function numericBound(value, fallback) {
@@ -547,16 +741,40 @@
           .replaceAll("'", "&#039;");
       }
 
-      function displayResults(matches, username, failedCount, registrationStatus) {
-        if (matches.length === 0) {
+      function sortMatchesForDisplay(matches) {
+        return [...matches].sort((a, b) => {
+          const priorityDifference = Number(isPriorityMatch(b.match)) - Number(isPriorityMatch(a.match));
+          if (priorityDifference !== 0) return priorityDifference;
+
+          const aStart = matchStartTimestamp(a.match) ?? Number.POSITIVE_INFINITY;
+          const bStart = matchStartTimestamp(b.match) ?? Number.POSITIVE_INFINITY;
+          return aStart - bStart || String(a.match?.name || "").localeCompare(String(b.match?.name || ""));
+        });
+      }
+
+      function resultSummaryLabel(total, registrationStatus) {
+        if (registrationStatus === "registered") {
+          return `${total} registered open match${total === 1 ? "" : "es"}`;
+        }
+        if (registrationStatus === "not_registered") {
+          return `${total} available unregistered match${total === 1 ? "" : "es"}`;
+        }
+        return `${total} matching open match${total === 1 ? "" : "es"}`;
+      }
+
+      function renderResults() {
+        const { matches, username, failedCount, registrationStatus } = resultState;
+        const total = matches.length;
+
+        if (total === 0) {
           let emptyMessage = "No open match corresponds to the selected filters.";
 
           if (registrationStatus === "registered") {
-            emptyMessage = "This user is not registered in any open match matching the selected match type.";
+            emptyMessage = "This user is not registered in any open match matching the selected filters.";
           } else if (registrationStatus === "not_registered") {
-            emptyMessage = "No unlocked, rating-eligible match matching the selected type remains available for this user.";
+            emptyMessage = "No unlocked, rating-eligible, unregistered match corresponds to the selected filters.";
           } else if (registrationStatus === "all") {
-            emptyMessage = "No unlocked, rating-eligible match corresponds to the selected match type.";
+            emptyMessage = "No unlocked, rating-eligible match corresponds to the selected filters.";
           }
 
           resultsBox.innerHTML = `<div class="empty">${escapeHTML(emptyMessage)}</div>`;
@@ -570,26 +788,13 @@
           return;
         }
 
-        const sortedMatches = [...matches].sort((a, b) => {
-          const priorityDifference = Number(isPriorityMatch(b.match)) - Number(isPriorityMatch(a.match));
-          if (priorityDifference !== 0) return priorityDifference;
+        const visibleCount = Math.min(resultState.visibleCount, total);
+        const visibleMatches = matches.slice(0, visibleCount);
+        const baseLabel = resultSummaryLabel(total, registrationStatus);
+        let html = `<div class="result-summary">Showing ${visibleCount} of ${baseLabel}</div>`;
 
-          const aStart = matchStartTimestamp(a.match) ?? Number.POSITIVE_INFINITY;
-          const bStart = matchStartTimestamp(b.match) ?? Number.POSITIVE_INFINITY;
-          return aStart - bStart || String(a.match?.name || "").localeCompare(String(b.match?.name || ""));
-        });
-
-        let summaryLabel = `${sortedMatches.length} matching open match${sortedMatches.length === 1 ? "" : "es"}`;
-        if (registrationStatus === "registered") {
-          summaryLabel = `${sortedMatches.length} registered open match${sortedMatches.length === 1 ? "" : "es"}`;
-        } else if (registrationStatus === "not_registered") {
-          summaryLabel = `${sortedMatches.length} available unregistered match${sortedMatches.length === 1 ? "" : "es"}`;
-        }
-
-        let html = `<div class="result-summary">${summaryLabel}</div>`;
-
-        for (const entry of sortedMatches) {
-          const { match, team, rating, bounds, registered, registeredOverride } = entry;
+        for (const entry of visibleMatches) {
+          const { match, rating, bounds, registered, registeredOverride, recommendation } = entry;
           const matchName = escapeHTML(match.name || "Unnamed match");
           const matchUrl = escapeHTML(match.url || "#");
           const type = escapeHTML(formatMatchType(match));
@@ -611,6 +816,9 @@
           }
 
           const priority = isPriorityMatch(match);
+          const recommendationLine = recommendation?.recommended
+            ? `<div class="recommendation-line"><span class="recommended-badge">Recommended</span>${escapeHTML(recommendation.reasons.join(" "))}</div>`
+            : "";
 
           html +=
             `<article class="match-card${registered ? " registered" : ""}${priority ? " priority" : ""}">` +
@@ -619,8 +827,17 @@
                 `<span class="start-date">Start: ${startDate}</span><br>` +
                 `${type} · Your rating: <strong>${ratingText}</strong> · Accepted range: <strong>${range}</strong><br>` +
                 statusLine +
+                recommendationLine +
               `</div>` +
             `</article>`;
+        }
+
+        if (visibleCount < total) {
+          html +=
+            `<div class="result-controls">` +
+              `<button id="p2kLoadMore" class="load-button" type="button">Load 5 more</button>` +
+              `<button id="p2kLoadAll" class="load-button secondary" type="button">Load all</button>` +
+            `</div>`;
         }
 
         if (failedCount > 0) {
@@ -628,6 +845,27 @@
         }
 
         resultsBox.innerHTML = html;
+
+        document.getElementById("p2kLoadMore")?.addEventListener("click", () => {
+          resultState.visibleCount = Math.min(resultState.visibleCount + PAGE_SIZE, total);
+          renderResults();
+        });
+
+        document.getElementById("p2kLoadAll")?.addEventListener("click", () => {
+          resultState.visibleCount = total;
+          renderResults();
+        });
+      }
+
+      function displayResults(matches, username, failedCount, registrationStatus) {
+        resultState = {
+          matches: sortMatchesForDisplay(matches),
+          username,
+          failedCount,
+          registrationStatus,
+          visibleCount: PAGE_SIZE
+        };
+        renderResults();
       }
 
       function validateRequestedRatings(selectedType, ratings, registrationStatus) {
@@ -650,6 +888,7 @@
         const username = usernameInput.value.trim();
         const selectedType = selectedMatchType();
         const registrationStatus = selectedRegistrationStatus();
+        const recommendationFilter = selectedRecommendationFilter();
 
         if (!username) {
           setStatus("Please enter your user name.", "error");
@@ -714,9 +953,20 @@
               const registered = isUserRegistered(team, username);
               const rating = ratingForMatch(match, ratings);
               const bounds = getRatingBounds(match);
+              const recommendationRating = registered
+                ? numericBound(findRegisteredPlayer(team, username)?.rating, rating)
+                : rating;
+              const recommendation = evaluateRecommendation(
+                match,
+                team,
+                username,
+                recommendationRating,
+                registered
+              );
 
               if (registrationStatus === "registered") {
                 if (!registered) continue;
+                if (recommendationFilter === "recommended" && !recommendation.recommended) continue;
 
                 eligibleMatches.push({
                   match,
@@ -724,7 +974,8 @@
                   rating,
                   bounds,
                   registered: true,
-                  registeredOverride: true
+                  registeredOverride: true,
+                  recommendation
                 });
                 continue;
               }
@@ -733,6 +984,7 @@
               if (!isRatingEligible(rating, bounds)) continue;
 
               if (registrationStatus === "not_registered" && registered) continue;
+              if (recommendationFilter === "recommended" && !recommendation.recommended) continue;
 
               eligibleMatches.push({
                 match,
@@ -740,7 +992,8 @@
                 rating,
                 bounds,
                 registered,
-                registeredOverride: false
+                registeredOverride: false,
+                recommendation
               });
             } catch (error) {
               failedCount += 1;
