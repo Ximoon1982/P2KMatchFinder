@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King — Open Daily Match Finder</title>
-  <!-- Version 5: recommendations and paginated results -->
+  <!-- Version 6: cached processed data and instant filter updates -->
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -374,6 +374,8 @@
       const ratingsBox = document.getElementById("p2kRatings");
       const resultsBox = document.getElementById("p2kResults");
 
+      let processedCache = null;
+
       let resultState = {
         matches: [],
         username: "",
@@ -427,6 +429,11 @@
 
       function selectedRecommendationFilter() {
         return document.querySelector('input[name="p2kRecommendationFilter"]:checked')?.value || "recommended";
+      }
+
+
+      function normalizeUsername(value) {
+        return String(value || "").trim().toLowerCase();
       }
 
       function appendCallbackParameter(url, callbackName) {
@@ -884,11 +891,62 @@
         }
       }
 
-      async function searchMatches() {
-        const username = usernameInput.value.trim();
+      function applyFiltersFromCache({ announce = false } = {}) {
+        if (!processedCache) return false;
+
+        const currentUsernameKey = normalizeUsername(usernameInput.value);
+        if (currentUsernameKey !== processedCache.usernameKey) return false;
+
         const selectedType = selectedMatchType();
         const registrationStatus = selectedRegistrationStatus();
         const recommendationFilter = selectedRecommendationFilter();
+
+        try {
+          validateRequestedRatings(selectedType, processedCache.ratings, registrationStatus);
+
+          const filteredMatches = processedCache.entries
+            .filter(entry => matchesTypeSelection(entry.match, selectedType))
+            .filter(entry => recommendationFilter !== "recommended" || entry.recommendation.recommended)
+            .filter(entry => {
+              if (registrationStatus === "registered") return entry.registered;
+              if (!entry.unlocked || !entry.ratingEligible) return false;
+              if (registrationStatus === "not_registered") return !entry.registered;
+              return true;
+            })
+            .map(entry => ({
+              ...entry,
+              registeredOverride: registrationStatus === "registered"
+            }));
+
+          displayResults(
+            filteredMatches,
+            processedCache.username,
+            processedCache.failedCount,
+            registrationStatus
+          );
+
+          if (announce) {
+            setStatus(
+              `Results updated from cached data: ${filteredMatches.length} match${filteredMatches.length === 1 ? "" : "es"} match the current filters.`,
+              "success"
+            );
+          }
+
+          return true;
+        } catch (error) {
+          resultsBox.innerHTML = "";
+          setStatus(error?.message || "Unable to apply the selected filters.", "error");
+          return true;
+        }
+      }
+
+      function handleFilterChange() {
+        applyFiltersFromCache({ announce: true });
+      }
+
+      async function searchMatches() {
+        const username = usernameInput.value.trim();
+        const usernameKey = normalizeUsername(username);
 
         if (!username) {
           setStatus("Please enter your user name.", "error");
@@ -897,6 +955,7 @@
         }
 
         searchButton.disabled = true;
+        processedCache = null;
         resultsBox.innerHTML = "";
         ratingsBox.style.display = "none";
         ratingsBox.innerHTML = "";
@@ -904,7 +963,7 @@
         try {
           setStatus(`Loading ratings for ${username}...`);
 
-          const statsUrl = `https://api.chess.com/pub/player/${encodeURIComponent(username.toLowerCase())}/stats`;
+          const statsUrl = `https://api.chess.com/pub/player/${encodeURIComponent(usernameKey)}/stats`;
           const stats = await loadJSON(statsUrl);
           const ratings = {
             classical: getLastRating(stats, "chess_daily"),
@@ -912,7 +971,6 @@
           };
 
           showRatings(username, ratings);
-          validateRequestedRatings(selectedType, ratings, registrationStatus);
 
           setStatus("Loading the registration match list...");
           const clubMatches = await loadJSON(CLUB_MATCHES_URL);
@@ -921,12 +979,22 @@
             : [];
 
           const totalMatches = registrationMatches.length;
-          const eligibleMatches = [];
+          const processedEntries = [];
           let failedCount = 0;
 
           if (totalMatches === 0) {
+            processedCache = {
+              username,
+              usernameKey,
+              ratings,
+              entries: [],
+              failedCount: 0,
+              totalMatches: 0,
+              processedAt: Date.now()
+            };
+
             setStatus("There are currently no daily matches open for registration.", "success");
-            displayResults([], username, 0, registrationStatus);
+            applyFiltersFromCache();
             return;
           }
 
@@ -945,7 +1013,6 @@
               const match = { ...listItem, ...matchDetails };
 
               if (!isSupportedDailyMatch(match)) continue;
-              if (!matchesTypeSelection(match, selectedType)) continue;
 
               const team = findPromoteToKingTeam(match);
               if (!team) continue;
@@ -964,35 +1031,14 @@
                 registered
               );
 
-              if (registrationStatus === "registered") {
-                if (!registered) continue;
-                if (recommendationFilter === "recommended" && !recommendation.recommended) continue;
-
-                eligibleMatches.push({
-                  match,
-                  team,
-                  rating,
-                  bounds,
-                  registered: true,
-                  registeredOverride: true,
-                  recommendation
-                });
-                continue;
-              }
-
-              if (!isTeamUnlocked(team)) continue;
-              if (!isRatingEligible(rating, bounds)) continue;
-
-              if (registrationStatus === "not_registered" && registered) continue;
-              if (recommendationFilter === "recommended" && !recommendation.recommended) continue;
-
-              eligibleMatches.push({
+              processedEntries.push({
                 match,
                 team,
                 rating,
                 bounds,
                 registered,
-                registeredOverride: false,
+                unlocked: isTeamUnlocked(team),
+                ratingEligible: isRatingEligible(rating, bounds),
                 recommendation
               });
             } catch (error) {
@@ -1001,13 +1047,24 @@
             }
           }
 
+          processedCache = {
+            username,
+            usernameKey,
+            ratings,
+            entries: processedEntries,
+            failedCount,
+            totalMatches,
+            processedAt: Date.now()
+          };
+
           setStatus(
             `Processing completed: ${totalMatches - failedCount} of ${totalMatches} matches loaded.`,
             "success",
             100
           );
-          displayResults(eligibleMatches, username, failedCount, registrationStatus);
+          applyFiltersFromCache();
         } catch (error) {
+          processedCache = null;
           console.error(error);
 
           if (error instanceof HttpError && error.status === 404) {
@@ -1024,6 +1081,10 @@
       usernameInput.addEventListener("keydown", event => {
         if (event.key === "Enter") searchMatches();
       });
+
+      document.querySelectorAll(
+        'input[name="p2kMatchType"], input[name="p2kRegistrationStatus"], input[name="p2kRecommendationFilter"]'
+      ).forEach(input => input.addEventListener("change", handleFilterChange));
 
       function reportHeight() {
         if (window.parent === window) return;
