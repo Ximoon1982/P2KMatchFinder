@@ -1,0 +1,54 @@
+Code url https://ximoon1982.github.io/P2KMatchFinder/FindMatch_v1.htm
+
+In the same spirit as previous posts, to generate html code with embedded javascript to post in a forum, do:
+
+Documentation about chess.com API is here: https://www.chess.com/news/view/published-data-api
+
+I want a frame containing the following fields:
+
+- A text box input, labelled "Please enter your user name"
+- A set of radio buttons with values "Classical chess matches ", "Ches 960 matches", "All daily matches" (default).
+- A set of radio buttons with values "Registered", "Not registered" (default), "All matches".
+- A set of radio buttons with values "Recommended matches" (default), "All matches".
+- A button "Search"
+
+At this URL there's a list of items, representing chess matches open for registration: https://api.chess.com/pub/club/promote-to-king/matches
+
+When the button "Search" is pressed, load from the registration matches list all the item. 
+In each item, access sequentially the URL given by the parameter "@id".
+Each of those will give a set of data containing match information.
+
+While opening the list, display a message "Processing match X of Y", X being the sequential number of the current match in the list and Y the total number of matches in the list.
+
+Open the profile corresponding to the username provided in the text box at the following adress: 
+https://api.chess.com/pub/player/{username}/stats
+This page contains the last ratings for daily classical chess "chess_daily" and for dail 960 chess "chess960_daily"
+
+By default only show 5 matches, and add at the bottom of the list a button to load more (5 more each time) and a button to load all.
+
+Only list the matches where the user's rating is within the max_rating and min_rating parameter for the match. A missing max_rating means there's no upper bound and everyone is elligible. A missing min_rating means the minimal rating is zero.
+
+Only list matches that have a "locked" value set to false for the "Promote to King" team.
+
+Don't list matches where if joining the user would not be selected because of the max_team_players setting.
+
+Don't list matches where the user is also part of the other team. Teams list of a user can be found at https://api.chess.com/pub/player/{username}/clubs
+
+List matches from the ones that starts sooner to the ones that start later. Display the start date.
+
+If the radio button for registration status is set to "Registered", list all matches where the user is registered regardless of any other status (lock, rating). Otherwise filter accordingly to other parmaters.
+
+Show priority matches first. The prioritized matches should have a more red accentuation in the title and left div side (instead of orange). 
+
+Priority matches are the one having a name starting or containing league acronyms: "1WL", "TCMAC", "KOTML", "TMCL", "WKCL", "PCL", "CW".
+
+If the radio user selected to show only recommended matches, hide the one that are not recommended.
+
+Criteria to flag a match as recommended (OR list):
+- The other team has more registered players than Promote to King, 
+- or the other teams has a rating advantage in the team's lineup and registration of the current player would help being in a better matchup. Take the max_team_players criteria into account: any player joining that would not be selected for playing will not improve the lineup. 
+- or Promote to King has fewer registered eligible players as the min_team_players setting of the match.
+
+The matches that are neither prioritized or recommended should have a more green accentuation in the title and left div side (instead of orange). 
+
+Put data in cache to allow for dynamic update of results after the data has been processed one if the user changes the radio button selection.
