@@ -1,79 +1,28 @@
-<!-- Promote to King Upcoming Matches Analyzer - Version 8 -->
-<div id="p2kUpcomingAnalyzer" class="p2k-analyzer">
-  <div class="p2k-header">
-    <h2>Promote to King Upcoming Matches Analyzer</h2>
-    <img
-      src="https://ximoon1982.github.io/P2KMatchFinder/p2k-logo.jpg"
-      alt="Promote to King club logo"
-      title="Promote to King"
-    >
-  </div>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Promote to King Upcoming Matches Analyzer</title>
+  <!-- Promote to King Upcoming Matches Analyzer - Version 9 -->
+  <style>
+  :root {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #eee;
+    background: transparent;
+  }
 
-  <button id="p2kAnalyzeButton" class="p2k-main-button" type="button">
-    Analyze upcoming matches
-  </button>
+  * {
+    box-sizing: border-box;
+  }
 
-  <div class="p2k-filter-title">Filters</div>
+  body {
+    margin: 0;
+    padding: 12px;
+    background: transparent;
+  }
 
-  <fieldset class="p2k-filter-group">
-    <legend>Registration status</legend>
-    <div class="p2k-choices">
-      <label>
-        <input type="radio" name="p2kLockFilter" value="open" checked>
-        <span>Open matches only</span>
-      </label>
-      <label>
-        <input type="radio" name="p2kLockFilter" value="all">
-        <span>Include locked matches</span>
-      </label>
-    </div>
-  </fieldset>
-
-  <fieldset class="p2k-filter-group">
-    <legend>Sorting</legend>
-    <div class="p2k-choices">
-      <label>
-        <input type="radio" name="p2kSortMode" value="date" checked>
-        <span>Sort by date</span>
-      </label>
-      <label>
-        <input type="radio" name="p2kSortMode" value="priority">
-        <span>Sort by priority</span>
-      </label>
-    </div>
-  </fieldset>
-
-  <fieldset class="p2k-filter-group">
-    <legend>Lock readiness</legend>
-    <div class="p2k-choices">
-      <label>
-        <input type="radio" name="p2kLockableFilter" value="all" checked>
-        <span>Show all</span>
-      </label>
-      <label>
-        <input type="radio" name="p2kLockableFilter" value="lockable">
-        <span>Lockable matches</span>
-      </label>
-    </div>
-  </fieldset>
-
-  <div class="p2k-legend" aria-label="Match color legend">
-    <span><i class="p2k-dot p2k-dot-green"></i>Locked</span>
-    <span><i class="p2k-dot p2k-dot-red"></i>Priority</span>
-    <span><i class="p2k-dot p2k-dot-orange"></i>Other</span>
-  </div>
-
-  <div id="p2kStatus" class="p2k-status" aria-live="polite">
-    <div id="p2kStatusText"></div>
-    <div id="p2kProgressTrack" class="p2k-progress-track" aria-hidden="true">
-      <div id="p2kProgressBar" class="p2k-progress-bar"></div>
-    </div>
-  </div>
-
-  <div id="p2kResults" class="p2k-results"></div>
-</div>
-
-<style>
   #p2kUpcomingAnalyzer,
   #p2kUpcomingAnalyzer * {
     box-sizing: border-box;
@@ -81,7 +30,7 @@
 
   #p2kUpcomingAnalyzer {
     width: min(100%, 760px);
-    margin: 20px auto;
+    margin: 0 auto;
     padding: 20px;
     border-width: 1px;
     border-style: solid;
@@ -385,7 +334,82 @@
       width: 100%;
     }
   }
-</style>
+  </style>
+</head>
+<body>
+<div id="p2kUpcomingAnalyzer" class="p2k-analyzer">
+  <div class="p2k-header">
+    <h2>Promote to King Upcoming Matches Analyzer</h2>
+    <img
+      src="https://ximoon1982.github.io/P2KMatchFinder/p2k-logo.jpg"
+      alt="Promote to King club logo"
+      title="Promote to King"
+    >
+  </div>
+
+  <button id="p2kAnalyzeButton" class="p2k-main-button" type="button">
+    Analyze upcoming matches
+  </button>
+
+  <div class="p2k-filter-title">Filters</div>
+
+  <fieldset class="p2k-filter-group">
+    <legend>Registration status</legend>
+    <div class="p2k-choices">
+      <label>
+        <input type="radio" name="p2kLockFilter" value="open" checked>
+        <span>Open matches only</span>
+      </label>
+      <label>
+        <input type="radio" name="p2kLockFilter" value="all">
+        <span>Include locked matches</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset class="p2k-filter-group">
+    <legend>Sorting</legend>
+    <div class="p2k-choices">
+      <label>
+        <input type="radio" name="p2kSortMode" value="date" checked>
+        <span>Sort by date</span>
+      </label>
+      <label>
+        <input type="radio" name="p2kSortMode" value="priority">
+        <span>Sort by priority</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset class="p2k-filter-group">
+    <legend>Lock readiness</legend>
+    <div class="p2k-choices">
+      <label>
+        <input type="radio" name="p2kLockableFilter" value="all" checked>
+        <span>Show all</span>
+      </label>
+      <label>
+        <input type="radio" name="p2kLockableFilter" value="lockable">
+        <span>Lockable matches</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <div class="p2k-legend" aria-label="Match color legend">
+    <span><i class="p2k-dot p2k-dot-green"></i>Locked</span>
+    <span><i class="p2k-dot p2k-dot-red"></i>Priority</span>
+    <span><i class="p2k-dot p2k-dot-orange"></i>Other</span>
+  </div>
+
+  <div id="p2kStatus" class="p2k-status" aria-live="polite">
+    <div id="p2kStatusText"></div>
+    <div id="p2kProgressTrack" class="p2k-progress-track" aria-hidden="true">
+      <div id="p2kProgressBar" class="p2k-progress-bar"></div>
+    </div>
+  </div>
+
+  <div id="p2kResults" class="p2k-results"></div>
+</div>
 
 <script>
 (() => {
@@ -939,3 +963,5 @@
   });
 })();
 </script>
+</body>
+</html>
