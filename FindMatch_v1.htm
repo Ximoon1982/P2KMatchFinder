@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Promote to King — Open Daily Matches</title>
+  <title>Promote to King — Open Daily Match Finder</title>
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -58,11 +58,27 @@
       outline-offset: 2px;
     }
 
+    .filter-group {
+      margin: 16px 0 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .filter-group + .filter-group { margin-top: 14px; }
+
+    .filter-title {
+      margin: 0 0 8px;
+      padding: 0;
+      color: #d7d2cb;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
     .choices {
       display: flex;
       flex-wrap: wrap;
       gap: 8px 18px;
-      margin: 16px 0;
+      margin: 0;
     }
 
     .choice {
@@ -190,6 +206,8 @@
 
     .eligible { color: #8fd68f; font-weight: 700; }
     .registered-text { color: #79d879; font-weight: 700; }
+    .override-text { color: #ffd078; font-weight: 700; }
+    .start-date { color: #f0e4cf; font-weight: 700; }
 
     @media (max-width: 540px) {
       body { padding: 6px; }
@@ -214,24 +232,47 @@
       placeholder="Chess.com user name"
     >
 
-    <div class="choices" role="radiogroup" aria-label="Match type">
-      <label class="choice">
-        <input type="radio" name="p2kMatchType" value="classical">
-        <span>Classical chess matches</span>
-      </label>
+    <fieldset class="filter-group">
+      <legend class="filter-title">Match type</legend>
+      <div class="choices">
+        <label class="choice">
+          <input type="radio" name="p2kMatchType" value="classical">
+          <span>Classical chess matches</span>
+        </label>
 
-      <label class="choice">
-        <input type="radio" name="p2kMatchType" value="chess960">
-        <span>Chess 960 matches</span>
-      </label>
+        <label class="choice">
+          <input type="radio" name="p2kMatchType" value="chess960">
+          <span>Chess 960 matches</span>
+        </label>
 
-      <label class="choice">
-        <input type="radio" name="p2kMatchType" value="all" checked>
-        <span>All daily matches</span>
-      </label>
-    </div>
+        <label class="choice">
+          <input type="radio" name="p2kMatchType" value="all" checked>
+          <span>All daily matches</span>
+        </label>
+      </div>
+    </fieldset>
 
-    <button id="p2kSearchButton" class="search-button" type="button">Search</button>
+    <fieldset class="filter-group">
+      <legend class="filter-title">Registration status</legend>
+      <div class="choices">
+        <label class="choice">
+          <input type="radio" name="p2kRegistrationStatus" value="registered">
+          <span>Registered</span>
+        </label>
+
+        <label class="choice">
+          <input type="radio" name="p2kRegistrationStatus" value="not_registered" checked>
+          <span>Not registered</span>
+        </label>
+
+        <label class="choice">
+          <input type="radio" name="p2kRegistrationStatus" value="all">
+          <span>All matches</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <button id="p2kSearchButton" class="search-button" type="button" style="margin-top:16px">Search</button>
 
     <div id="p2kStatus" class="status" aria-live="polite">
       <div id="p2kStatusText"></div>
@@ -299,6 +340,10 @@
 
       function selectedMatchType() {
         return document.querySelector('input[name="p2kMatchType"]:checked')?.value || "all";
+      }
+
+      function selectedRegistrationStatus() {
+        return document.querySelector('input[name="p2kRegistrationStatus"]:checked')?.value || "not_registered";
       }
 
       function appendCallbackParameter(url, callbackName) {
@@ -451,6 +496,27 @@
         return getMatchRules(match) === "chess960" ? "Chess 960" : "Classical chess";
       }
 
+      function matchStartTimestamp(match) {
+        const value = Number(match?.start_time);
+        return Number.isFinite(value) && value > 0 ? value : null;
+      }
+
+      function formatStartDate(match) {
+        const timestamp = matchStartTimestamp(match);
+        if (timestamp === null) return "Not scheduled";
+
+        return new Intl.DateTimeFormat("en-GB", {
+          timeZone: "UTC",
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          timeZoneName: "short"
+        }).format(new Date(timestamp * 1000));
+      }
+
       function showRatings(username, ratings) {
         ratingsBox.style.display = "block";
         ratingsBox.innerHTML =
@@ -468,10 +534,19 @@
           .replaceAll("'", "&#039;");
       }
 
-      function displayResults(matches, username, failedCount) {
+      function displayResults(matches, username, failedCount, registrationStatus) {
         if (matches.length === 0) {
-          resultsBox.innerHTML =
-            '<div class="empty">No unlocked open match corresponds to the selected category and your current rating.</div>';
+          let emptyMessage = "No open match corresponds to the selected filters.";
+
+          if (registrationStatus === "registered") {
+            emptyMessage = "This user is not registered in any open match matching the selected match type.";
+          } else if (registrationStatus === "not_registered") {
+            emptyMessage = "No unlocked, rating-eligible match matching the selected type remains available for this user.";
+          } else if (registrationStatus === "all") {
+            emptyMessage = "No unlocked, rating-eligible match corresponds to the selected match type.";
+          }
+
+          resultsBox.innerHTML = `<div class="empty">${escapeHTML(emptyMessage)}</div>`;
 
           if (failedCount > 0) {
             resultsBox.insertAdjacentHTML(
@@ -482,41 +557,64 @@
           return;
         }
 
-        const sortedMatches = [...matches].sort((a, b) =>
-          Number(a.start_time || 0) - Number(b.start_time || 0)
-        );
+        const sortedMatches = [...matches].sort((a, b) => {
+          const aStart = matchStartTimestamp(a.match) ?? Number.POSITIVE_INFINITY;
+          const bStart = matchStartTimestamp(b.match) ?? Number.POSITIVE_INFINITY;
+          return aStart - bStart || String(a.match?.name || "").localeCompare(String(b.match?.name || ""));
+        });
 
-        let html =
-          `<div class="result-summary">${sortedMatches.length} eligible unlocked match${sortedMatches.length === 1 ? "" : "es"}</div>`;
+        let summaryLabel = `${sortedMatches.length} matching open match${sortedMatches.length === 1 ? "" : "es"}`;
+        if (registrationStatus === "registered") {
+          summaryLabel = `${sortedMatches.length} registered open match${sortedMatches.length === 1 ? "" : "es"}`;
+        } else if (registrationStatus === "not_registered") {
+          summaryLabel = `${sortedMatches.length} available unregistered match${sortedMatches.length === 1 ? "" : "es"}`;
+        }
+
+        let html = `<div class="result-summary">${summaryLabel}</div>`;
 
         for (const entry of sortedMatches) {
-          const { match, team, rating, bounds } = entry;
-          const registered = isUserRegistered(team, username);
+          const { match, team, rating, bounds, registered, registeredOverride } = entry;
           const matchName = escapeHTML(match.name || "Unnamed match");
           const matchUrl = escapeHTML(match.url || "#");
           const type = escapeHTML(formatMatchType(match));
+          const startDate = escapeHTML(formatStartDate(match));
+          const ratingText = rating === null ? "not available" : escapeHTML(rating);
           const range = escapeHTML(formatRatingRange(bounds));
+
+          let statusLine;
+          if (registeredOverride) {
+            statusLine =
+              `<span class="registered-text">${escapeHTML(username)} is registered</span>` +
+              ` · <span class="override-text">Shown regardless of team lock and rating limits</span>`;
+          } else {
+            statusLine =
+              `<span class="eligible">Eligible and registration unlocked for Promote to King</span>` +
+              (registered
+                ? ` · <span class="registered-text">${escapeHTML(username)} is already registered</span>`
+                : ` · ${escapeHTML(username)} is not registered`);
+          }
 
           html +=
             `<article class="match-card${registered ? " registered" : ""}">` +
               `<a class="match-title" href="${matchUrl}" target="_blank" rel="noopener noreferrer">${matchName}</a>` +
               `<div class="match-details">` +
-                `${type} · Your rating: <strong>${rating}</strong> · Accepted range: <strong>${range}</strong><br>` +
-                `<span class="eligible">Eligible and registration unlocked for Promote to King</span>` +
-                (registered ? ` · <span class="registered-text">${escapeHTML(username)} is already registered</span>` : "") +
+                `<span class="start-date">Start: ${startDate}</span><br>` +
+                `${type} · Your rating: <strong>${ratingText}</strong> · Accepted range: <strong>${range}</strong><br>` +
+                statusLine +
               `</div>` +
             `</article>`;
         }
 
         if (failedCount > 0) {
-          html +=
-            `<div class="warning">${failedCount} match${failedCount === 1 ? "" : "es"} could not be loaded.</div>`;
+          html += `<div class="warning">${failedCount} match${failedCount === 1 ? "" : "es"} could not be loaded.</div>`;
         }
 
         resultsBox.innerHTML = html;
       }
 
-      function validateRequestedRatings(selectedType, ratings) {
+      function validateRequestedRatings(selectedType, ratings, registrationStatus) {
+        if (registrationStatus === "registered") return;
+
         if (selectedType === "classical" && ratings.classical === null) {
           throw new Error("This user has no Daily classical rating available.");
         }
@@ -533,6 +631,7 @@
       async function searchMatches() {
         const username = usernameInput.value.trim();
         const selectedType = selectedMatchType();
+        const registrationStatus = selectedRegistrationStatus();
 
         if (!username) {
           setStatus("Please enter your user name.", "error");
@@ -556,7 +655,7 @@
           };
 
           showRatings(username, ratings);
-          validateRequestedRatings(selectedType, ratings);
+          validateRequestedRatings(selectedType, ratings, registrationStatus);
 
           setStatus("Loading the registration match list...");
           const clubMatches = await loadJSON(CLUB_MATCHES_URL);
@@ -570,7 +669,7 @@
 
           if (totalMatches === 0) {
             setStatus("There are currently no daily matches open for registration.", "success");
-            displayResults([], username, 0);
+            displayResults([], username, 0, registrationStatus);
             return;
           }
 
@@ -592,13 +691,39 @@
               if (!matchesTypeSelection(match, selectedType)) continue;
 
               const team = findPromoteToKingTeam(match);
-              if (!team || !isTeamUnlocked(team)) continue;
+              if (!team) continue;
 
+              const registered = isUserRegistered(team, username);
               const rating = ratingForMatch(match, ratings);
               const bounds = getRatingBounds(match);
+
+              if (registrationStatus === "registered") {
+                if (!registered) continue;
+
+                eligibleMatches.push({
+                  match,
+                  team,
+                  rating,
+                  bounds,
+                  registered: true,
+                  registeredOverride: true
+                });
+                continue;
+              }
+
+              if (!isTeamUnlocked(team)) continue;
               if (!isRatingEligible(rating, bounds)) continue;
 
-              eligibleMatches.push({ match, team, rating, bounds });
+              if (registrationStatus === "not_registered" && registered) continue;
+
+              eligibleMatches.push({
+                match,
+                team,
+                rating,
+                bounds,
+                registered,
+                registeredOverride: false
+              });
             } catch (error) {
               failedCount += 1;
               console.error(`Unable to load match ${currentNumber}`, listItem, error);
@@ -610,7 +735,7 @@
             "success",
             100
           );
-          displayResults(eligibleMatches, username, failedCount);
+          displayResults(eligibleMatches, username, failedCount, registrationStatus);
         } catch (error) {
           console.error(error);
 
