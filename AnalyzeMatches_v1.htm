@@ -1,4 +1,4 @@
-<!-- Promote to King Upcoming Matches Analyzer - Version 1 -->
+<!-- Promote to King Upcoming Matches Analyzer - Version 4 -->
 <div id="p2kUpcomingAnalyzer" class="p2k-analyzer">
   <div class="p2k-header">
     <h2>Promote to King Upcoming Matches Analyzer</h2>
@@ -39,6 +39,20 @@
       <label>
         <input type="radio" name="p2kSortMode" value="priority">
         <span>Sort by priority</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset class="p2k-filter-group">
+    <legend>Lock readiness</legend>
+    <div class="p2k-choices">
+      <label>
+        <input type="radio" name="p2kLockableFilter" value="all" checked>
+        <span>Show all</span>
+      </label>
+      <label>
+        <input type="radio" name="p2kLockableFilter" value="lockable">
+        <span>Lockable matches</span>
       </label>
     </div>
   </fieldset>
@@ -580,8 +594,8 @@
       .sort((a, b) => b.rating - a.rating || a.username.localeCompare(b.username));
   }
 
-  function selectedLineupRatings(team, maxPlayers) {
-    const ratings = ratedPlayers(team).map(player => player.rating);
+  function selectedLineupRatings(team, maxPlayers, bounds = null) {
+    const ratings = ratedPlayers(team, bounds).map(player => player.rating);
     return Number.isFinite(maxPlayers) ? ratings.slice(0, maxPlayers) : ratings;
   }
 
@@ -618,9 +632,16 @@
     const maxPlayers = maximumTeamPlayers(match);
     const minPlayers = minimumTeamPlayers(match);
     const eligibleP2KPlayers = ratedPlayers(p2kTeam, bounds).length;
-    const p2kLineup = selectedLineupRatings(p2kTeam, maxPlayers);
-    const opponentLineup = selectedLineupRatings(opponentTeam, maxPlayers);
+    const p2kLineup = selectedLineupRatings(p2kTeam, maxPlayers, bounds);
+    const opponentLineup = selectedLineupRatings(opponentTeam, maxPlayers, bounds);
     const lineupComparison = compareLineups(p2kLineup, opponentLineup);
+    const hasEnoughEligiblePlayers = minPlayers <= 0 || eligibleP2KPlayers >= minPlayers;
+    const hasDefinedMaximumPlayers = Number.isFinite(maxPlayers);
+    const hasReachedMaximumPlayers =
+      hasDefinedMaximumPlayers && p2kPlayers.length >= maxPlayers;
+    const hasLineupAdvantage = Boolean(
+      lineupComparison && lineupComparison.opponentAdvantage < 0
+    );
     const leagueMatches = matchingLeagueAcronyms(match?.name);
     const priorityReasons = [];
 
@@ -674,8 +695,23 @@
       minPlayers,
       maxPlayers,
       lineupComparison,
+      hasEnoughEligiblePlayers,
+      hasDefinedMaximumPlayers,
+      hasReachedMaximumPlayers,
+      hasLineupAdvantage,
+      isLeagueMatch: leagueMatches.length > 0,
       locked: p2kTeam.locked === true,
       explicitlyOpen: p2kTeam.locked === false,
+      /*
+       * League matches are never lockable. A non-league match is lockable
+       * only when max_team_players is explicitly defined and P2K has reached
+       * that registration limit. Unlimited matches are never lockable.
+       */
+      isLockable:
+        p2kTeam.locked === false &&
+        leagueMatches.length === 0 &&
+        hasReachedMaximumPlayers &&
+        hasLineupAdvantage,
       isPriority: priorityReasons.length > 0,
       priorityReasons
     };
@@ -701,10 +737,12 @@
   function filteredAndSortedMatches() {
     const lockFilter = selectedValue("p2kLockFilter", "open");
     const sortMode = selectedValue("p2kSortMode", "date");
+    const lockableFilter = selectedValue("p2kLockableFilter", "all");
 
     const filtered = state.matches.filter(match => {
-      if (lockFilter === "all") return true;
-      return match.explicitlyOpen;
+      if (lockFilter !== "all" && !match.explicitlyOpen) return false;
+      if (lockableFilter === "lockable" && !match.isLockable) return false;
+      return true;
     });
 
     filtered.sort((a, b) => {
@@ -887,7 +925,9 @@
 
   analyzeButton.addEventListener("click", analyzeUpcomingMatches);
 
-  root.querySelectorAll('input[name="p2kLockFilter"], input[name="p2kSortMode"]').forEach(input => {
+  root.querySelectorAll(
+    'input[name="p2kLockFilter"], input[name="p2kSortMode"], input[name="p2kLockableFilter"]'
+  ).forEach(input => {
     input.addEventListener("change", () => {
       if (!state.processed) return;
       state.visibleCount = PAGE_SIZE;
