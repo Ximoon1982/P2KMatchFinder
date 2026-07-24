@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 15 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 17 -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -1219,6 +1219,30 @@
       }));
   }
 
+
+  function buildCumulativeRatingData(ratings1, ratings2, step = 100) {
+    const team1Ratings = ratings1.filter(Number.isFinite);
+    const team2Ratings = ratings2.filter(Number.isFinite);
+    const combined = [...team1Ratings, ...team2Ratings];
+    if (combined.length === 0) return [];
+
+    const minimumRating = Math.min(...combined);
+    const maximumRating = Math.max(...combined);
+    const firstThreshold = Math.floor(minimumRating / step) * step;
+    const lastThreshold = Math.floor(maximumRating / step) * step;
+    const data = [];
+
+    for (let threshold = firstThreshold; threshold <= lastThreshold; threshold += step) {
+      data.push({
+        threshold,
+        team1: team1Ratings.filter(rating => rating >= threshold).length,
+        team2: team2Ratings.filter(rating => rating >= threshold).length
+      });
+    }
+
+    return data;
+  }
+
   function detailedLineupAnalysis(p2kTeam, opponentTeam, bounds, maxPlayers) {
     const p2kRegisteredRatings = ratedPlayers(p2kTeam).map(player => player.rating);
     const opponentRegisteredRatings = ratedPlayers(opponentTeam).map(player => player.rating);
@@ -1298,6 +1322,11 @@
         team1: buildRatingStatistics(p2kRegisteredRatings, p2kRatingEligibleRatings),
         team2: buildRatingStatistics(opponentRegisteredRatings, opponentRatingEligibleRatings)
       },
+      cumulativeRatingData: buildCumulativeRatingData(
+        p2kRegisteredRatings,
+        opponentRegisteredRatings,
+        100
+      ),
       p2kRatingEligibleCount: p2kRatingEligibleRatings.length,
       opponentRatingEligibleCount: opponentRatingEligibleRatings.length,
       p2kEligibleCount: p2kEligibleRatings.length,
@@ -1676,7 +1705,7 @@
     }).join("");
 
     const expandButton = !large && matchKey
-      ? `<button class="p2k-chart-expand" type="button" data-match-key="${escapeAttribute(matchKey)}">View larger</button>`
+      ? `<button class="p2k-chart-expand" type="button" data-chart-type="distribution" data-match-key="${escapeAttribute(matchKey)}">View larger</button>`
       : "";
 
     const legendItems = [
@@ -1703,25 +1732,127 @@
         <div class="p2k-chart-legend">${legendItems}</div>
         <div class="p2k-chart-note">Hover a bar to see the exact number of rating-eligible or non-eligible registered players in that 50-point Elo bracket.</div>
       </div>
-      ${renderRatingStatisticsHTML(statistics, p2kName, opponentName)}
     `;
   }
 
-  function openChartModal(matchKey, triggerButton = null) {
+
+  function renderCumulativeRatingHTML(data, p2kName, opponentName, options = {}) {
+    if (!Array.isArray(data) || data.length === 0) {
+      return '<div class="p2k-chart-note">No cumulative rating data available.</div>';
+    }
+
+    const large = options.large === true;
+    const matchKey = String(options.matchKey || "");
+    const chartWidth = large
+      ? Math.max(1120, 72 + data.length * 46)
+      : 760;
+    const leftPadding = large ? 58 : 46;
+    const rightPadding = large ? 24 : 14;
+    const topPadding = large ? 20 : 12;
+    const bottomPadding = large ? 88 : 76;
+    const chartHeight = large ? 380 : 230;
+    const chartBottom = topPadding + chartHeight;
+    const plotWidth = chartWidth - leftPadding - rightPadding;
+    const maximumCount = Math.max(1, ...data.flatMap(point => [point.team1, point.team2]));
+    const tickStep = Math.max(1, Math.ceil(maximumCount / 5));
+    const axisMaximum = Math.ceil(maximumCount / tickStep) * tickStep;
+
+    let grid = "";
+    for (let tick = 0; tick <= axisMaximum; tick += tickStep) {
+      const y = chartBottom - (tick / axisMaximum) * chartHeight;
+      grid += `
+        <line x1="${leftPadding}" y1="${y.toFixed(2)}" x2="${(chartWidth - rightPadding).toFixed(2)}" y2="${y.toFixed(2)}" stroke="rgba(255,255,255,.08)" stroke-width="1" />
+        <text x="${leftPadding - 7}" y="${(y + 4).toFixed(2)}" text-anchor="end" fill="#bfb7ae" font-size="${large ? 12 : 10}">${tick}</text>`;
+    }
+
+    const xForIndex = index => {
+      if (data.length === 1) return leftPadding + plotWidth / 2;
+      return leftPadding + (index / (data.length - 1)) * plotWidth;
+    };
+    const yForCount = count => chartBottom - (count / axisMaximum) * chartHeight;
+
+    const team1Points = data.map((point, index) => `${xForIndex(index).toFixed(2)},${yForCount(point.team1).toFixed(2)}`).join(" ");
+    const team2Points = data.map((point, index) => `${xForIndex(index).toFixed(2)},${yForCount(point.team2).toFixed(2)}`).join(" ");
+
+    const pointElements = data.map((point, index) => {
+      const x = xForIndex(index);
+      const y1 = yForCount(point.team1);
+      const y2 = yForCount(point.team2);
+      const labelY = chartBottom + 10;
+      const team1Title = `${point.threshold} Elo and above | ${p2kName}: ${point.team1} registered player${point.team1 === 1 ? "" : "s"}`;
+      const team2Title = `${point.threshold} Elo and above | ${opponentName}: ${point.team2} registered player${point.team2 === 1 ? "" : "s"}`;
+
+      return `
+        <g>
+          <circle cx="${x.toFixed(2)}" cy="${y1.toFixed(2)}" r="${large ? 5 : 3.5}" fill="#91e09a" stroke="#171513" stroke-width="1.5">
+            <title>${escapeAttribute(team1Title)}</title>
+          </circle>
+          <circle cx="${x.toFixed(2)}" cy="${y2.toFixed(2)}" r="${large ? 5 : 3.5}" fill="#ff8b79" stroke="#171513" stroke-width="1.5">
+            <title>${escapeAttribute(team2Title)}</title>
+          </circle>
+          <text
+            x="${x.toFixed(2)}"
+            y="${labelY.toFixed(2)}"
+            text-anchor="end"
+            fill="#d7cfc5"
+            font-size="${large ? 10 : 8}"
+            transform="rotate(-90 ${x.toFixed(2)} ${labelY.toFixed(2)})"
+          >${point.threshold}</text>
+        </g>`;
+    }).join("");
+
+    const expandButton = !large && matchKey
+      ? `<button class="p2k-chart-expand" type="button" data-chart-type="cumulative" data-match-key="${escapeAttribute(matchKey)}">View larger</button>`
+      : "";
+
+    return `
+      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Cumulative registered players at or above rating (100 Elo steps)</div>${expandButton}</div>`}
+      <div class="p2k-chart-wrap">
+        <div class="p2k-chart-scroll">
+          <svg class="p2k-chart-svg" width="${chartWidth}" height="${chartBottom + bottomPadding}" viewBox="0 0 ${chartWidth} ${chartBottom + bottomPadding}" role="img" aria-label="Cumulative registered player counts at or above each rating threshold for ${escapeAttribute(p2kName)} and ${escapeAttribute(opponentName)}">
+            ${grid}
+            <line x1="${leftPadding}" y1="${chartBottom}" x2="${chartWidth - rightPadding}" y2="${chartBottom}" stroke="rgba(255,255,255,.22)" stroke-width="1" />
+            <polyline points="${team1Points}" fill="none" stroke="#91e09a" stroke-width="${large ? 3 : 2}" stroke-linejoin="round" stroke-linecap="round" />
+            <polyline points="${team2Points}" fill="none" stroke="#ff8b79" stroke-width="${large ? 3 : 2}" stroke-linejoin="round" stroke-linecap="round" />
+            ${pointElements}
+          </svg>
+        </div>
+        <div class="p2k-chart-legend">
+          <span><i class="p2k-chart-swatch" style="background:#91e09a"></i>${escapeHTML(p2kName)}</span>
+          <span><i class="p2k-chart-swatch" style="background:#ff8b79"></i>${escapeHTML(opponentName)}</span>
+        </div>
+        <div class="p2k-chart-note">Each point shows the number of registered players rated at or above the displayed threshold. Hover a point for the exact total.</div>
+      </div>
+    `;
+  }
+
+  function openChartModal(matchKey, chartType = "distribution", triggerButton = null) {
     const match = state.matches.find(item => item.cacheKey === matchKey);
     if (!match?.detailedAnalysis) return;
 
     lastChartModalTrigger = triggerButton;
     const p2kName = "Promote to King";
     const opponentName = String(match.opponentTeam.name || "Other team");
-    chartModalTitle.textContent = `${match.name} — registered players by rating bracket`;
-    chartModalBody.innerHTML = renderRatingHistogramHTML(
-      match.detailedAnalysis.ratingBracketHistogram,
-      match.detailedAnalysis.ratingStatistics,
-      p2kName,
-      opponentName,
-      { large: true }
-    );
+
+    if (chartType === "cumulative") {
+      chartModalTitle.textContent = `${match.name} — cumulative players at or above rating`;
+      chartModalBody.innerHTML = renderCumulativeRatingHTML(
+        match.detailedAnalysis.cumulativeRatingData,
+        p2kName,
+        opponentName,
+        { large: true }
+      );
+    } else {
+      chartModalTitle.textContent = `${match.name} — registered players by rating bracket`;
+      chartModalBody.innerHTML = renderRatingHistogramHTML(
+        match.detailedAnalysis.ratingBracketHistogram,
+        match.detailedAnalysis.ratingStatistics,
+        p2kName,
+        opponentName,
+        { large: true }
+      );
+    }
+
     chartModal.hidden = false;
     chartModal.setAttribute("aria-hidden", "false");
     chartModalClose.focus();
@@ -1832,6 +1963,17 @@
       opponentName,
       { matchKey: match.cacheKey }
     );
+    const cumulativeRatingChart = renderCumulativeRatingHTML(
+      details.cumulativeRatingData,
+      p2kName,
+      opponentName,
+      { matchKey: match.cacheKey }
+    );
+    const ratingStatistics = renderRatingStatisticsHTML(
+      details.ratingStatistics,
+      p2kName,
+      opponentName
+    );
 
     if (details.boardCount === 0) {
       return `
@@ -1839,6 +1981,8 @@
           ${registrationTable}
           <div class="p2k-detail-line">Detailed lineup analysis is unavailable because no eligible board can be paired.</div>
           ${ratingHistogram}
+          ${cumulativeRatingChart}
+          ${ratingStatistics}
         </div>
       `;
     }
@@ -1935,6 +2079,8 @@
         </div>
 
         ${ratingHistogram}
+        ${cumulativeRatingChart}
+        ${ratingStatistics}
       </div>
     `;
   }
@@ -2074,7 +2220,8 @@
       button.addEventListener("click", () => {
         const matchKey = button.dataset.matchKey;
         if (!matchKey) return;
-        openChartModal(matchKey, button);
+        const chartType = button.dataset.chartType || "distribution";
+        openChartModal(matchKey, chartType, button);
       });
     });
   }
