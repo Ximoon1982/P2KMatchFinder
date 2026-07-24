@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 20 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 22 -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -140,6 +140,80 @@
     flex: 0 0 15px;
     margin: 0;
     accent-color: #d98d18;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-match-search-toolbar[hidden] {
+    display: none !important;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-match-search-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 10px;
+    padding: 9px 10px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 7px;
+    background: rgba(0, 0, 0, .12);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-match-search-group {
+    display: flex;
+    flex: 1 1 220px;
+    align-items: center;
+    gap: 7px;
+    min-width: 180px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-match-search {
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 6px;
+    outline: none;
+    background: rgba(0, 0, 0, .22);
+    color: #fff3df !important;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-match-search::placeholder {
+    color: #9e968d;
+    opacity: 1;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-match-search:focus {
+    border-color: rgba(246, 183, 60, .82);
+    box-shadow: 0 0 0 2px rgba(217, 141, 24, .16);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-search-label {
+    margin-right: 2px;
+    color: #f0e4cf;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-search-clear {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 6px 9px;
+    border: 1px solid rgba(246, 183, 60, .45);
+    border-radius: 6px;
+    background: rgba(217, 141, 24, .10);
+    color: #ffd078;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-search-clear:hover:not(:disabled) {
+    background: rgba(217, 141, 24, .20);
   }
 
   #p2kUpcomingAnalyzer .p2k-legend {
@@ -759,6 +833,21 @@
       width: 100%;
     }
 
+    #p2kUpcomingAnalyzer .p2k-match-search-toolbar,
+    #p2kUpcomingAnalyzer .p2k-match-search-group {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-match-search-group {
+      flex-basis: auto;
+      width: 100%;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-search-clear {
+      width: 100%;
+    }
+
 
     #p2kUpcomingAnalyzer .p2k-card-header {
       align-items: stretch;
@@ -872,6 +961,27 @@
     </div>
   </div>
 
+  <div
+    id="p2kSearchToolbar"
+    class="p2k-match-search-toolbar"
+    role="search"
+    aria-label="Search analyzed matches"
+    hidden
+  >
+    <div class="p2k-match-search-group">
+      <label class="p2k-search-label" for="p2kMatchSearch">Match</label>
+      <input
+        id="p2kMatchSearch"
+        class="p2k-match-search"
+        type="search"
+        placeholder="Search match name or opponent..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <button id="p2kClearSearch" class="p2k-search-clear" type="button">Clear</button>
+    </div>
+  </div>
+
   <div id="p2kResults" class="p2k-results"></div>
 
   <div id="p2kChartModal" class="p2k-chart-modal" hidden aria-hidden="true">
@@ -906,6 +1016,9 @@
   const processingActions = document.getElementById("p2kProcessingActions");
   const cancelButton = document.getElementById("p2kCancelButton");
   const resultsBox = document.getElementById("p2kResults");
+  const searchToolbar = document.getElementById("p2kSearchToolbar");
+  const matchSearchInput = document.getElementById("p2kMatchSearch");
+  const clearSearchButton = document.getElementById("p2kClearSearch");
   const chartModal = document.getElementById("p2kChartModal");
   const chartModalTitle = document.getElementById("p2kChartModalTitle");
   const chartModalBody = document.getElementById("p2kChartModalBody");
@@ -1100,6 +1213,15 @@
 
   function selectedValue(name, fallback) {
     return root.querySelector(`input[name="${name}"]:checked`)?.value || fallback;
+  }
+
+
+  function normalizedSearchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
   }
 
   function findP2KTeam(match) {
@@ -1648,10 +1770,22 @@
     const lockFilter = selectedValue("p2kLockFilter", "open");
     const sortMode = selectedValue("p2kSortMode", "date");
     const lockableFilter = selectedValue("p2kLockableFilter", "all");
+    const searchQuery = normalizedSearchText(matchSearchInput.value);
 
     const filtered = state.matches.filter(match => {
       if (lockFilter !== "all" && !match.explicitlyOpen) return false;
       if (lockableFilter === "lockable" && !match.isLockable) return false;
+
+      if (searchQuery) {
+        const searchableText = normalizedSearchText([
+          match.name,
+          match.opponentTeam?.name,
+          match.p2kTeam?.name,
+          match.url
+        ].join(" "));
+        if (!searchableText.includes(searchQuery)) return false;
+      }
+
       return true;
     });
 
@@ -2341,17 +2475,28 @@
   function renderResults() {
     if (!state.processed) return;
 
+    searchToolbar.hidden = false;
+
     const matches = filteredAndSortedMatches();
     const shownMatches = matches.slice(0, state.visibleCount);
 
     if (matches.length === 0) {
-      resultsBox.innerHTML = '<div class="p2k-empty">No match corresponds to the selected filter.</div>';
+      const hasSearch = normalizedSearchText(matchSearchInput.value).length > 0;
+      resultsBox.innerHTML = `<div class="p2k-empty">${
+        hasSearch
+          ? "No analyzed match corresponds to this search and the selected filters."
+          : "No match corresponds to the selected filter."
+      }</div>`;
       return;
     }
 
     let html = `
       <div class="p2k-result-summary">
-        Showing ${Math.min(state.visibleCount, matches.length)} of ${matches.length} match${matches.length === 1 ? "" : "es"}
+        Showing ${Math.min(state.visibleCount, matches.length)} of ${matches.length} match${matches.length === 1 ? "" : "es"}${
+          normalizedSearchText(matchSearchInput.value)
+            ? ` matching “${escapeHTML(matchSearchInput.value.trim())}”`
+            : ""
+        }
       </div>
       ${shownMatches.map(cardHTML).join("")}
     `;
@@ -2426,6 +2571,7 @@
     analyzeButton.disabled = true;
     analyzeButton.textContent = "Analyzing...";
     resultsBox.innerHTML = "";
+    searchToolbar.hidden = true;
     showCancelButton();
 
     try {
@@ -2515,6 +2661,24 @@
   });
 
   analyzeButton.addEventListener("click", analyzeUpcomingMatches);
+
+  matchSearchInput.addEventListener("input", () => {
+    clearSearchButton.disabled = matchSearchInput.value.length === 0;
+    if (!state.processed) return;
+    state.visibleCount = PAGE_SIZE;
+    renderResults();
+  });
+
+  clearSearchButton.addEventListener("click", () => {
+    if (!matchSearchInput.value) return;
+    matchSearchInput.value = "";
+    clearSearchButton.disabled = true;
+    state.visibleCount = PAGE_SIZE;
+    if (state.processed) renderResults();
+    matchSearchInput.focus();
+  });
+
+  clearSearchButton.disabled = matchSearchInput.value.length === 0;
 
   root.querySelectorAll(
     'input[name="p2kLockFilter"], input[name="p2kSortMode"], input[name="p2kLockableFilter"]'
