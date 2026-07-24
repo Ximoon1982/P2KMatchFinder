@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 22 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 27 -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -385,7 +385,16 @@
     flex: 1 1 auto;
   }
 
-  #p2kUpcomingAnalyzer .p2k-detail-toggle {
+  #p2kUpcomingAnalyzer .p2k-card-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 7px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-toggle,
+  #p2kUpcomingAnalyzer .p2k-copy-html {
     flex: 0 0 auto;
     padding: 6px 10px;
     border: 1px solid rgba(246, 183, 60, .52);
@@ -396,12 +405,25 @@
     font-weight: 700;
     line-height: 1.2;
     cursor: pointer;
-    transition: filter .15s ease, background .15s ease;
+    transition: filter .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
   }
 
-  #p2kUpcomingAnalyzer .p2k-detail-toggle:hover {
+  #p2kUpcomingAnalyzer .p2k-detail-toggle:hover,
+  #p2kUpcomingAnalyzer .p2k-copy-html:hover {
     filter: brightness(1.12);
     background: rgba(217, 141, 24, .22);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-html.p2k-copy-success {
+    border-color: rgba(104, 202, 116, .72);
+    background: rgba(79, 168, 91, .18);
+    color: #91e09a;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-html.p2k-copy-error {
+    border-color: rgba(255, 114, 95, .72);
+    background: rgba(217, 74, 58, .18);
+    color: #ff8b79;
   }
 
   #p2kUpcomingAnalyzer .p2k-expanded-details {
@@ -820,6 +842,43 @@
   }
 
 
+  #p2kUpcomingAnalyzer .p2k-copy-modal-dialog {
+    width: min(820px, 96vw);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-manual-note {
+    margin: 0 0 10px;
+    color: #d7cfc5;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-manual-textarea {
+    display: block;
+    width: 100%;
+    height: min(52vh, 420px);
+    resize: vertical;
+    padding: 10px;
+    border: 1px solid rgba(255, 190, 60, .38);
+    border-radius: 7px;
+    outline: none;
+    background: #11100f;
+    color: #eee;
+    font: 12px/1.45 Consolas, "Courier New", monospace;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-manual-textarea:focus {
+    border-color: rgba(255, 190, 60, .75);
+    box-shadow: 0 0 0 2px rgba(217, 141, 24, .16);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-manual-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 10px;
+  }
+
   @media (max-width: 620px) {
     #p2kUpcomingAnalyzer {
       padding: 16px;
@@ -854,8 +913,12 @@
       flex-direction: column;
     }
 
-    #p2kUpcomingAnalyzer .p2k-detail-toggle {
-      align-self: flex-end;
+    #p2kUpcomingAnalyzer .p2k-card-actions {
+      align-self: stretch;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-card-actions button {
+      flex: 1 1 auto;
     }
 
     #p2kUpcomingAnalyzer .p2k-stats-grid {
@@ -993,6 +1056,23 @@
       <div id="p2kChartModalBody"></div>
     </div>
   </div>
+
+  <div id="p2kCopyModal" class="p2k-chart-modal" hidden aria-hidden="true">
+    <div class="p2k-chart-modal-dialog p2k-copy-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="p2kCopyModalTitle">
+      <div class="p2k-chart-modal-header">
+        <div id="p2kCopyModalTitle" class="p2k-chart-modal-title">Copy vignette HTML manually</div>
+        <button id="p2kCopyModalClose" class="p2k-chart-modal-close" type="button">Close</button>
+      </div>
+      <p class="p2k-copy-manual-note">
+        Automatic clipboard access is blocked by this browser or iframe. The HTML is selected below; press Ctrl+C (or Cmd+C on macOS).
+      </p>
+      <textarea id="p2kCopyManualText" class="p2k-copy-manual-textarea" readonly spellcheck="false"></textarea>
+      <div class="p2k-copy-manual-actions">
+        <button id="p2kCopySelectAll" class="p2k-load-button p2k-secondary" type="button">Select all</button>
+        <button id="p2kCopyModalCloseBottom" class="p2k-load-button" type="button">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1023,6 +1103,11 @@
   const chartModalTitle = document.getElementById("p2kChartModalTitle");
   const chartModalBody = document.getElementById("p2kChartModalBody");
   const chartModalClose = document.getElementById("p2kChartModalClose");
+  const copyModal = document.getElementById("p2kCopyModal");
+  const copyModalClose = document.getElementById("p2kCopyModalClose");
+  const copyModalCloseBottom = document.getElementById("p2kCopyModalCloseBottom");
+  const copyManualText = document.getElementById("p2kCopyManualText");
+  const copySelectAll = document.getElementById("p2kCopySelectAll");
   let lastChartModalTrigger = null;
   let activeAnalysis = null;
 
@@ -2443,15 +2528,25 @@
               </a>
             </div>
           </div>
-          <button
-            class="p2k-detail-toggle"
-            type="button"
-            data-match-key="${escapeHTML(match.cacheKey)}"
-            aria-expanded="${detailsExpanded ? "true" : "false"}"
-            aria-controls="${escapeHTML(match.detailId)}"
-          >
-            ${detailsExpanded ? "Hide details" : "Show details"}
-          </button>
+          <div class="p2k-card-actions">
+            <button
+              class="p2k-copy-html"
+              type="button"
+              data-match-key="${escapeHTML(match.cacheKey)}"
+              title="Copy this match vignette's HTML to the clipboard"
+            >
+              Copy HTML
+            </button>
+            <button
+              class="p2k-detail-toggle"
+              type="button"
+              data-match-key="${escapeHTML(match.cacheKey)}"
+              aria-expanded="${detailsExpanded ? "true" : "false"}"
+              aria-controls="${escapeHTML(match.detailId)}"
+            >
+              ${detailsExpanded ? "Hide details" : "Show details"}
+            </button>
+          </div>
         </div>
         <div class="p2k-details">
           <div><span class="p2k-date">Start:</span> ${escapeHTML(formatStartDate(match.startTimestamp))}</div>
@@ -2470,6 +2565,255 @@
         ${detailsExpanded ? detailedInfoHTML(match) : ""}
       </div>
     `;
+  }
+
+  function legacyCopyText(text) {
+    const activeElement = document.activeElement;
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("aria-hidden", "true");
+    textarea.style.position = "fixed";
+    textarea.style.left = "0";
+    textarea.style.top = "0";
+    textarea.style.width = "1px";
+    textarea.style.height = "1px";
+    textarea.style.padding = "0";
+    textarea.style.border = "0";
+    textarea.style.opacity = "0.01";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+
+    let copied = false;
+    try {
+      textarea.focus({ preventScroll: true });
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      copied = document.execCommand("copy") === true;
+    } catch (_) {
+      copied = false;
+    } finally {
+      textarea.remove();
+      if (activeElement && typeof activeElement.focus === "function") {
+        try { activeElement.focus({ preventScroll: true }); } catch (_) { activeElement.focus(); }
+      }
+    }
+
+    return copied;
+  }
+
+  async function copyTextToClipboard(text) {
+    /*
+     * Try the synchronous legacy path first. It is the most reliable option
+     * when this page is embedded in a forum iframe without clipboard-write
+     * permission, and it keeps the browser's click user-activation intact.
+     */
+    if (legacyCopyText(text)) return "legacy";
+
+    if (navigator.clipboard && window.isSecureContext) {
+      if (window.ClipboardItem && typeof navigator.clipboard.write === "function") {
+        try {
+          const item = new ClipboardItem({
+            "text/plain": new Blob([text], { type: "text/plain" }),
+            "text/html": new Blob([text], { type: "text/html" })
+          });
+          await navigator.clipboard.write([item]);
+          return "clipboard-item";
+        } catch (error) {
+          console.warn("P2K Upcoming Matches Analyzer: rich clipboard write failed", error);
+        }
+      }
+
+      if (typeof navigator.clipboard.writeText === "function") {
+        try {
+          await navigator.clipboard.writeText(text);
+          return "write-text";
+        } catch (error) {
+          console.warn("P2K Upcoming Matches Analyzer: clipboard writeText failed", error);
+        }
+      }
+    }
+
+    throw new Error("Automatic clipboard access is unavailable.");
+  }
+
+  function selectManualCopyText() {
+    copyManualText.focus({ preventScroll: true });
+    copyManualText.select();
+    copyManualText.setSelectionRange(0, copyManualText.value.length);
+  }
+
+  function showManualCopyModal(text) {
+    copyManualText.value = text;
+    copyModal.hidden = false;
+    copyModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    window.setTimeout(selectManualCopyText, 0);
+  }
+
+  function closeManualCopyModal() {
+    copyModal.hidden = true;
+    copyModal.setAttribute("aria-hidden", "true");
+    copyManualText.value = "";
+    if (chartModal.hidden) document.body.style.overflow = "";
+  }
+
+  function applyRuleStyle(target, ruleStyle) {
+    Array.from(ruleStyle || []).forEach(property => {
+      target.style.setProperty(
+        property,
+        ruleStyle.getPropertyValue(property),
+        ruleStyle.getPropertyPriority(property)
+      );
+    });
+  }
+
+  function inlineAuthoredStyles(sourceRoot, cloneRoot) {
+    const sourceElements = [sourceRoot, ...sourceRoot.querySelectorAll("*")];
+    const cloneElements = [cloneRoot, ...cloneRoot.querySelectorAll("*")];
+
+    const processRules = rules => {
+      Array.from(rules || []).forEach(rule => {
+        if (rule.type === CSSRule.STYLE_RULE) {
+          const selectors = String(rule.selectorText || "")
+            .split(",")
+            .map(selector => selector.trim())
+            .filter(Boolean);
+
+          sourceElements.forEach((sourceElement, index) => {
+            const cloneElement = cloneElements[index];
+            if (!cloneElement) return;
+
+            const matches = selectors.some(selector => {
+              try { return sourceElement.matches(selector); } catch (_) { return false; }
+            });
+
+            if (matches) applyRuleStyle(cloneElement, rule.style);
+          });
+          return;
+        }
+
+        if (rule.type === CSSRule.MEDIA_RULE) {
+          if (window.matchMedia(rule.conditionText).matches) processRules(rule.cssRules);
+          return;
+        }
+
+        if (typeof CSSRule.SUPPORTS_RULE !== "undefined" && rule.type === CSSRule.SUPPORTS_RULE) {
+          processRules(rule.cssRules);
+        }
+      });
+    };
+
+    Array.from(document.styleSheets).forEach(styleSheet => {
+      try { processRules(styleSheet.cssRules); } catch (_) { /* Cross-origin stylesheet. */ }
+    });
+  }
+
+  function selectorTouchesCard(selector, card) {
+    if (
+      selector.includes(".p2k-copy-html") ||
+      selector.includes(".p2k-detail-toggle") ||
+      selector.includes(".p2k-chart-expand")
+    ) return false;
+
+    try {
+      return Array.from(document.querySelectorAll(selector)).some(
+        element => element === card || card.contains(element)
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function scopedVignetteCSS(scopeId, card) {
+    const originalScope = "#p2kUpcomingAnalyzer";
+    const replacementScope = `#${scopeId}`;
+    const output = [
+      `${replacementScope}, ${replacementScope} * { box-sizing: border-box; }`,
+      `${replacementScope} { width: 100%; max-width: 760px; color: #eee; font-family: Arial, Helvetica, sans-serif; }`
+    ];
+
+    const processRules = rules => {
+      const renderedRules = [];
+
+      Array.from(rules || []).forEach(rule => {
+        if (rule.type === CSSRule.STYLE_RULE) {
+          const selector = String(rule.selectorText || "");
+          if (!selector.includes(originalScope)) return;
+
+          const selectors = selector
+            .split(",")
+            .map(item => item.trim())
+            .filter(item => item !== originalScope)
+            .filter(item => selectorTouchesCard(item, card))
+            .map(item => item.replaceAll(originalScope, replacementScope));
+
+          if (selectors.length > 0) {
+            renderedRules.push(`${selectors.join(", ")} { ${rule.style.cssText} }`);
+          }
+          return;
+        }
+
+        if (rule.type === CSSRule.MEDIA_RULE) {
+          const nested = processRules(rule.cssRules);
+          if (nested) renderedRules.push(`@media ${rule.conditionText} { ${nested} }`);
+          return;
+        }
+
+        if (typeof CSSRule.SUPPORTS_RULE !== "undefined" && rule.type === CSSRule.SUPPORTS_RULE) {
+          const nested = processRules(rule.cssRules);
+          if (nested) renderedRules.push(`@supports ${rule.conditionText} { ${nested} }`);
+        }
+      });
+
+      return renderedRules.join("\n");
+    };
+
+    Array.from(document.styleSheets).forEach(styleSheet => {
+      try {
+        const css = processRules(styleSheet.cssRules);
+        if (css) output.push(css);
+      } catch (error) {
+        console.warn("P2K Upcoming Matches Analyzer: unable to include a stylesheet in copied HTML", error);
+      }
+    });
+
+    return output.join("\n");
+  }
+
+  function vignetteHTMLForClipboard(button) {
+    const card = button.closest(".p2k-card");
+    if (!card) throw new Error("The match vignette could not be found.");
+
+    const clone = card.cloneNode(true);
+
+    /*
+     * Inline styles before removing controls so the source and cloned element
+     * trees retain identical traversal order.
+     */
+    inlineAuthoredStyles(card, clone);
+
+    clone.querySelectorAll(
+      ".p2k-copy-html, .p2k-detail-toggle, .p2k-chart-expand"
+    ).forEach(control => control.remove());
+
+    /*
+     * Copied vignettes may be pasted onto light pages or forum posts. Force a
+     * solid dark-grey card background in the copied payload only, while
+     * retaining the live analyzer's colored accent border and typography.
+     */
+    clone.style.setProperty("background", "#2b2b2b", "important");
+    clone.style.setProperty("background-color", "#2b2b2b", "important");
+    clone.style.setProperty("background-image", "none", "important");
+
+    const actions = clone.querySelector(".p2k-card-actions");
+    if (actions && actions.children.length === 0) actions.remove();
+
+    /* Include the original responsive rules under a unique wrapper scope. */
+
+    const scopeId = `p2kCopiedVignette_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const css = scopedVignetteCSS(scopeId, card);
+
+    return `<style>${css}</style><div id="${scopeId}">${clone.outerHTML}</div>`;
   }
 
   function renderResults() {
@@ -2528,6 +2872,33 @@
     document.getElementById("p2kLoadAll")?.addEventListener("click", () => {
       state.visibleCount = matches.length;
       renderResults();
+    });
+
+    resultsBox.querySelectorAll(".p2k-copy-html").forEach(button => {
+      button.addEventListener("click", async () => {
+        const defaultLabel = "Copy HTML";
+        button.disabled = true;
+        button.classList.remove("p2k-copy-success", "p2k-copy-error");
+
+        try {
+          const vignetteHTML = vignetteHTMLForClipboard(button);
+          await copyTextToClipboard(vignetteHTML);
+          button.textContent = "Copied!";
+          button.classList.add("p2k-copy-success");
+        } catch (error) {
+          console.error("P2K Upcoming Matches Analyzer: unable to copy vignette HTML automatically", error);
+          showManualCopyModal(vignetteHTMLForClipboard(button));
+          button.textContent = "Copy manually";
+          button.classList.add("p2k-copy-error");
+        }
+
+        window.setTimeout(() => {
+          if (!button.isConnected) return;
+          button.textContent = defaultLabel;
+          button.classList.remove("p2k-copy-success", "p2k-copy-error");
+          button.disabled = false;
+        }, 1600);
+      });
     });
 
     resultsBox.querySelectorAll(".p2k-detail-toggle").forEach(button => {
@@ -2650,7 +3021,9 @@
   });
 
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !chartModal.hidden) closeChartModal();
+    if (event.key !== "Escape") return;
+    if (!copyModal.hidden) closeManualCopyModal();
+    else if (!chartModal.hidden) closeChartModal();
   });
 
   cancelButton.addEventListener("click", () => {
@@ -2658,6 +3031,13 @@
     cancelButton.disabled = true;
     cancelButton.textContent = "Cancelling...";
     activeAnalysis.abort();
+  });
+
+  copyModalClose.addEventListener("click", closeManualCopyModal);
+  copyModalCloseBottom.addEventListener("click", closeManualCopyModal);
+  copySelectAll.addEventListener("click", selectManualCopyText);
+  copyModal.addEventListener("click", event => {
+    if (event.target === copyModal) closeManualCopyModal();
   });
 
   analyzeButton.addEventListener("click", analyzeUpcomingMatches);
