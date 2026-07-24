@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 19 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 20 -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -186,6 +186,45 @@
   #p2kUpcomingAnalyzer .p2k-status.p2k-success {
     background: rgba(79, 168, 91, .13);
     color: #91e09a;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-status-text {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-processing-actions {
+    display: none;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    margin: 0;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-cancel-button {
+    padding: 7px 14px;
+    border: 1px solid rgba(255, 114, 95, .72);
+    border-radius: 7px;
+    background: rgba(217, 74, 58, .14);
+    color: #ff8b79;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-cancel-button:hover:not(:disabled) {
+    filter: brightness(1.13);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-cancel-button:disabled {
+    cursor: wait;
+    opacity: .6;
   }
 
   #p2kUpcomingAnalyzer .p2k-progress-track {
@@ -817,7 +856,17 @@
   </div>
 
   <div id="p2kStatus" class="p2k-status" aria-live="polite">
-    <div id="p2kStatusText"></div>
+    <div class="p2k-status-row">
+      <div id="p2kStatusText" class="p2k-status-text"></div>
+      <div id="p2kProcessingActions" class="p2k-processing-actions">
+        <button
+          id="p2kCancelButton"
+          class="p2k-cancel-button"
+          type="button"
+          title="Stop processing the remaining matches and display the results loaded so far."
+        >Cancel</button>
+      </div>
+    </div>
     <div id="p2kProgressTrack" class="p2k-progress-track" aria-hidden="true">
       <div id="p2kProgressBar" class="p2k-progress-bar"></div>
     </div>
@@ -854,12 +903,15 @@
   const statusText = document.getElementById("p2kStatusText");
   const progressTrack = document.getElementById("p2kProgressTrack");
   const progressBar = document.getElementById("p2kProgressBar");
+  const processingActions = document.getElementById("p2kProcessingActions");
+  const cancelButton = document.getElementById("p2kCancelButton");
   const resultsBox = document.getElementById("p2kResults");
   const chartModal = document.getElementById("p2kChartModal");
   const chartModalTitle = document.getElementById("p2kChartModalTitle");
   const chartModalBody = document.getElementById("p2kChartModalBody");
   const chartModalClose = document.getElementById("p2kChartModalClose");
   let lastChartModalTrigger = null;
+  let activeAnalysis = null;
 
   /*
    * This is the in-memory cache. Once all @id URLs have been processed,
@@ -892,8 +944,33 @@
       .replace(/'/g, "&#039;");
   }
 
-  function delay(milliseconds) {
-    return new Promise(resolve => window.setTimeout(resolve, milliseconds));
+  class CancellationError extends Error {
+    constructor(message = "Processing cancelled by the user.") {
+      super(message);
+      this.name = "CancellationError";
+    }
+  }
+
+  function delay(milliseconds, signal = null) {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new CancellationError());
+        return;
+      }
+
+      const onAbort = () => {
+        window.clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
+        reject(new CancellationError());
+      };
+
+      const timer = window.setTimeout(() => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, milliseconds);
+
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
   }
 
   function allowScreenUpdate() {
@@ -918,24 +995,47 @@
     }
   }
 
+  function showCancelButton() {
+    processingActions.style.display = "flex";
+    cancelButton.disabled = false;
+    cancelButton.textContent = "Cancel";
+  }
+
+  function hideCancelButton() {
+    processingActions.style.display = "none";
+    cancelButton.disabled = false;
+    cancelButton.textContent = "Cancel";
+  }
+
   function appendCallbackParameter(url, callbackName) {
     return `${url}${url.includes("?") ? "&" : "?"}callback=${encodeURIComponent(callbackName)}`;
   }
 
-  function loadJSONP(url) {
+  function loadJSONP(url, signal = null) {
     return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new CancellationError());
+        return;
+      }
+
       const callbackName = `p2kUpcomingJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const script = document.createElement("script");
       let timer = null;
 
       const cleanup = () => {
         if (timer !== null) window.clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
         script.remove();
         try {
           delete window[callbackName];
         } catch (_) {
           window[callbackName] = undefined;
         }
+      };
+
+      const onAbort = () => {
+        cleanup();
+        reject(new CancellationError());
       };
 
       window[callbackName] = data => {
@@ -953,39 +1053,45 @@
         reject(new Error(`JSONP request timed out for ${url}`));
       }, JSONP_TIMEOUT_MS);
 
+      signal?.addEventListener("abort", onAbort, { once: true });
       script.src = appendCallbackParameter(url, callbackName);
       script.async = true;
       document.head.appendChild(script);
     });
   }
 
-  async function requestJSONOnce(url) {
+  async function requestJSONOnce(url, signal = null) {
+    if (signal?.aborted) throw new CancellationError();
+
     try {
       const response = await fetch(url, {
         method: "GET",
         mode: "cors",
         cache: "no-store",
-        headers: { Accept: "application/json" }
+        headers: { Accept: "application/json" },
+        signal
       });
 
       if (!response.ok) throw new HttpError(response.status, url);
       return await response.json();
     } catch (error) {
+      if (signal?.aborted || error?.name === "AbortError") throw new CancellationError();
       if (error instanceof HttpError) throw error;
-      return await loadJSONP(url);
+      return await loadJSONP(url, signal);
     }
   }
 
-  async function loadJSON(url) {
+  async function loadJSON(url, signal = null) {
     let lastError = null;
 
     for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt += 1) {
       try {
-        return await requestJSONOnce(url);
+        return await requestJSONOnce(url, signal);
       } catch (error) {
         lastError = error;
+        if (error instanceof CancellationError) throw error;
         if (error instanceof HttpError && error.status === 404) throw error;
-        if (attempt < REQUEST_ATTEMPTS) await delay(attempt * 800);
+        if (attempt < REQUEST_ATTEMPTS) await delay(attempt * 800, signal);
       }
     }
 
@@ -2307,6 +2413,10 @@
   async function analyzeUpcomingMatches() {
     if (state.processing) return;
 
+    const controller = new AbortController();
+    activeAnalysis = controller;
+    const signal = controller.signal;
+
     state.processing = true;
     state.processed = false;
     state.matches = [];
@@ -2316,12 +2426,13 @@
     analyzeButton.disabled = true;
     analyzeButton.textContent = "Analyzing...";
     resultsBox.innerHTML = "";
+    showCancelButton();
 
     try {
       setStatus("Loading registration match list...", "working", 0);
       await allowScreenUpdate();
 
-      const listData = await loadJSON(MATCH_LIST_URL);
+      const listData = await loadJSON(MATCH_LIST_URL, signal);
       const registrationMatches = Array.isArray(listData?.registered) ? listData.registered : [];
       const total = registrationMatches.length;
 
@@ -2334,6 +2445,8 @@
 
       /* Sequential requests are intentional: do not replace with Promise.all(). */
       for (let index = 0; index < total; index += 1) {
+        if (signal.aborted) throw new CancellationError();
+
         const sequentialNumber = index + 1;
         setStatus(
           `Processing match ${sequentialNumber} of ${total}`,
@@ -2343,10 +2456,11 @@
         await allowScreenUpdate();
 
         try {
-          const matchData = await loadJSON(registrationMatches[index]["@id"]);
+          const matchData = await loadJSON(registrationMatches[index]["@id"], signal);
           const analyzedMatch = analyzeMatch(matchData);
           if (analyzedMatch) state.matches.push(analyzedMatch);
         } catch (error) {
+          if (error instanceof CancellationError) throw error;
           state.failedCount += 1;
           console.warn("P2K Upcoming Matches Analyzer: skipped match", registrationMatches[index], error);
         }
@@ -2362,10 +2476,22 @@
       );
       renderResults();
     } catch (error) {
-      console.error("P2K Upcoming Matches Analyzer", error);
-      setStatus(`Unable to analyze matches: ${error.message || error}`, "error", null);
+      if (error instanceof CancellationError || signal.aborted) {
+        state.processed = true;
+        setStatus(
+          `Processing cancelled: ${state.matches.length} match${state.matches.length === 1 ? "" : "es"} loaded.`,
+          "working",
+          null
+        );
+        renderResults();
+      } else {
+        console.error("P2K Upcoming Matches Analyzer", error);
+        setStatus(`Unable to analyze matches: ${error.message || error}`, "error", null);
+      }
     } finally {
+      if (activeAnalysis === controller) activeAnalysis = null;
       state.processing = false;
+      hideCancelButton();
       analyzeButton.disabled = false;
       analyzeButton.textContent = "Analyze upcoming matches";
     }
@@ -2379,6 +2505,13 @@
 
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && !chartModal.hidden) closeChartModal();
+  });
+
+  cancelButton.addEventListener("click", () => {
+    if (!state.processing || !activeAnalysis) return;
+    cancelButton.disabled = true;
+    cancelButton.textContent = "Cancelling...";
+    activeAnalysis.abort();
   });
 
   analyzeButton.addEventListener("click", analyzeUpcomingMatches);
