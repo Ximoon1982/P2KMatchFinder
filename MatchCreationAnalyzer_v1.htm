@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Match Creation Analyzer</title>
-  <!-- Version 10: preserve partial data on cancellation and allow detailed analysis to resume -->
+  <!-- Version 11: update calculated displays only at analysis checkpoints; keep 30-day board average strictly within the chart window -->
   <style>
 
     :root {
@@ -1328,11 +1328,13 @@
           ),
           failed: 0,
           processed: 0,
-          requested: 0
+          requested: 0,
+          registrationCheckpointRendered: false,
+          recentCheckpointRendered: false
         };
       }
 
-      function detailQueue(records) {
+      function detailQueuePlan(records) {
         const recentDateKeys = new Set(dateRangeKeys(DAYS_CHART));
         const recentInProgress = records.inProgress.filter(record =>
           recentDateKeys.has(dateKeyFromTimestamp(record.startTime))
@@ -1340,48 +1342,102 @@
         const remainingInProgress = records.inProgress.filter(record =>
           !recentDateKeys.has(dateKeyFromTimestamp(record.startTime))
         );
-
-        /*
-         * Request order deliberately prioritizes the Match creation tab:
-         * 1. registration matches update the registration board totals;
-         * 2. recent in-progress and finished matches update the 30-day chart;
-         * 3. older or undated in-progress matches complete opponent statistics.
-         */
-        const rawQueue = [
-          ...records.registered,
-          ...recentInProgress,
-          ...records.finished,
-          ...remainingInProgress
-        ];
         const seenUrls = new Set();
 
-        return rawQueue.filter(record => {
+        const uniqueSegment = segment => segment.filter(record => {
           const url = String(record.apiUrl || record.summary?.["@id"] || "");
           if (!url || seenUrls.has(url)) return false;
           seenUrls.add(url);
           return true;
         });
+
+        /*
+         * Request order deliberately prioritizes the Match creation tab:
+         * 1. registration matches update registration board totals;
+         * 2. started matches in the 30-day window update the chart and averages;
+         * 3. older or undated in-progress matches complete opponent statistics.
+         */
+        const registration = uniqueSegment(records.registered);
+        const recent = uniqueSegment([
+          ...recentInProgress,
+          ...records.finished
+        ]);
+        const remaining = uniqueSegment(remainingInProgress);
+
+        return {
+          registration,
+          recent,
+          remaining,
+          all: [...registration, ...recent, ...remaining]
+        };
+      }
+
+      function detailQueue(records) {
+        return detailQueuePlan(records).all;
       }
 
       async function loadDetailedRecords(records, runId, resume = false) {
-        const orderedQueue = detailQueue(records);
+        const plan = detailQueuePlan(records);
+        const orderedQueue = plan.all;
 
         if (!resume) {
           records.failed = 0;
           records.processed = 0;
           records.requested = orderedQueue.length;
+          records.registrationCheckpointRendered = false;
+          records.recentCheckpointRendered = false;
         } else if (!records.requested) {
           records.requested = orderedQueue.length;
         }
 
+        const isComplete = segment =>
+          segment.every(record => record.detailState !== "pending");
+
         /*
-         * Loaded and failed records are preserved when resuming. Only records
-         * that are still pending are requested, in the same priority order.
+         * Recalculate and redraw only at useful checkpoints. Progress text can
+         * still move for every request, but tables, cards, charts and averages
+         * remain stable between checkpoints.
+         */
+        const renderReachedCheckpoint = () => {
+          const allComplete = isComplete(plan.all);
+          if (allComplete) return;
+
+          const registrationComplete = isComplete(plan.registration);
+          const recentComplete = registrationComplete && isComplete(plan.recent);
+
+          if (recentComplete && !records.recentCheckpointRendered) {
+            records.registrationCheckpointRendered = true;
+            records.recentCheckpointRendered = true;
+            renderAnalysis(records, {
+              phase: "recentComplete",
+              processed: records.processed,
+              total: records.requested
+            });
+            return;
+          }
+
+          if (
+            registrationComplete &&
+            !records.registrationCheckpointRendered
+          ) {
+            records.registrationCheckpointRendered = true;
+            renderAnalysis(records, {
+              phase: "registrationComplete",
+              processed: records.processed,
+              total: records.requested
+            });
+          }
+        };
+
+        /*
+         * Loaded and failed records are preserved when resuming. Only pending
+         * records are requested, in the original priority order.
          */
         const queue = orderedQueue.filter(
           record => record.detailState === "pending"
         );
 
+        renderReachedCheckpoint();
         if (queue.length === 0) return records;
 
         for (let index = 0; index < queue.length; index += 1) {
@@ -1418,18 +1474,14 @@
           );
           records.processed = current;
 
-          renderAnalysis(records, {
-            phase: "loading",
-            processed: current,
-            total
-          });
-
           setStatus(
             `Processing match ${current} of ${total}`,
             "working",
             { current, total },
             true
           );
+
+          renderReachedCheckpoint();
         }
 
         return records;
@@ -2183,12 +2235,19 @@
 
       function renderAnalysis(records, analysisState = { phase: "basic" }) {
         const viewState = captureViewState();
+        const chartKeys = dateRangeKeys(DAYS_CHART);
+        const chartKeySet = new Set(chartKeys);
         const startedRecords = [
           ...records.inProgress,
           ...records.finished
         ];
-        const chartKeys = dateRangeKeys(DAYS_CHART);
-        const chartAggregates = aggregateByDate(startedRecords, chartKeys);
+        const recentStartedRecords = startedRecords.filter(record =>
+          chartKeySet.has(dateKeyFromTimestamp(record.startTime))
+        );
+        const chartAggregates = aggregateByDate(
+          recentStartedRecords,
+          chartKeys
+        );
         const matchValues = chartKeys.map(key =>
           chartAggregates.get(key).matches
         );
@@ -2238,10 +2297,14 @@
         const loadedCount = allRecords.filter(
           record => record.detailState === "loaded"
         ).length;
-        const knownRecentBoards = startedRecords.filter(
-          record => record.boards !== null &&
-            chartKeys.includes(dateKeyFromTimestamp(record.startTime))
+        const knownRecentBoards = recentStartedRecords.filter(
+          record => record.boards !== null
         ).length;
+        const recentDetailsComplete = recentStartedRecords.every(
+          record => record.detailState !== "pending"
+        );
+        const pausedWithRecentData =
+          analysisState.phase === "paused" && knownRecentBoards > 0;
 
         let detailNote = "";
         if (analysisState.phase === "basic") {
@@ -2252,13 +2315,28 @@
               <strong>Detailed analyzis</strong>.
             </div>
           `;
+        } else if (analysisState.phase === "registrationComplete") {
+          detailNote = `
+            <div class="p2k-detail-note">
+              <strong>Registration details are complete.</strong>
+              Registration board totals have been updated. The 30-day match
+              creation statistics will update after all recent matches are retrieved.
+            </div>
+          `;
+        } else if (analysisState.phase === "recentComplete") {
+          detailNote = `
+            <div class="p2k-detail-note">
+              <strong>The 30-day match creation data is complete.</strong>
+              The chart and both daily averages now cover exactly the latest
+              ${DAYS_CHART} calendar days. Remaining requests complete older
+              opponent statistics.
+            </div>
+          `;
         } else if (analysisState.phase === "loading") {
           detailNote = `
             <div class="p2k-detail-note">
-              <strong>Board information is updating live:</strong>
-              ${analysisState.processed || loadedCount} of
-              ${analysisState.total || records.requested} match details processed.
-              Current board totals and averages include the values loaded so far.
+              <strong>Detailed analyzis is running.</strong>
+              Statistics remain unchanged until the next completed data group.
             </div>
           `;
         } else if (
@@ -2283,12 +2361,16 @@
           `;
         }
 
-        const averageBoardsDisplay = knownRecentBoards > 0
+        const showBoardAverage =
+          recentDetailsComplete || pausedWithRecentData;
+        const averageBoardsDisplay = showBoardAverage
           ? averageBoards.toFixed(2)
           : "—";
-        const boardAverageSubvalue = unknownRecentBoards > 0
-          ? `${startedBoardsLast30} known boards; ${unknownRecentBoards} match${unknownRecentBoards === 1 ? "" : "es"} pending/unavailable`
-          : `${startedBoardsLast30} during ${DAYS_CHART} days`;
+        const boardAverageSubvalue = !showBoardAverage
+          ? `Available after the ${DAYS_CHART}-day matches are retrieved`
+          : unknownRecentBoards > 0
+            ? `${startedBoardsLast30} known boards in the last ${DAYS_CHART} days; ${unknownRecentBoards} match${unknownRecentBoards === 1 ? "" : "es"} pending/unavailable`
+            : `${startedBoardsLast30} boards in the last ${DAYS_CHART} days`;
 
         resultsBox.innerHTML = `
           <div class="p2k-tabs" role="tablist" aria-label="Analyzer displays">
@@ -2423,11 +2505,12 @@
           : detailQueue(currentRecords).length;
         const initialProcessed = resume ? currentRecords.processed : 0;
 
-        renderAnalysis(currentRecords, {
-          phase: "loading",
-          processed: initialProcessed,
-          total: initialTotal
-        });
+        setStatus(
+          `Processing match ${Math.min(initialProcessed + 1, initialTotal)} of ${initialTotal}`,
+          "working",
+          { current: initialProcessed, total: initialTotal },
+          true
+        );
 
         try {
           await loadDetailedRecords(currentRecords, runId, resume);
