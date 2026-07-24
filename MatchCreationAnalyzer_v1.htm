@@ -1,6 +1,31 @@
-<!-- Promote to King Match Creation Analyzer - Version 5 -->
-<div id="p2kCreationAnalyzer">
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Promote to King Match Creation Analyzer</title>
+  <!-- Version 7: standalone page, automatic basic stats, progressive detailed board loading, cancellation -->
   <style>
+
+    :root {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #eee;
+      background: transparent;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      background: transparent;
+    }
     #p2kCreationAnalyzer,
     #p2kCreationAnalyzer * {
       box-sizing: border-box;
@@ -94,7 +119,7 @@
 
     #p2kCreationAnalyzer .p2k-metrics {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
     }
 
@@ -201,10 +226,14 @@
       font-weight: 700;
     }
 
+    #p2kCreationAnalyzer th:nth-child(n+2),
+    #p2kCreationAnalyzer td:nth-child(n+2) {
+      text-align: right;
+    }
+
     #p2kCreationAnalyzer th:last-child,
     #p2kCreationAnalyzer td:last-child {
       width: 120px;
-      text-align: right;
     }
 
     #p2kCreationAnalyzer tbody tr:last-child td {
@@ -507,7 +536,7 @@
 
     #p2kCreationAnalyzer .p2k-opponent-match {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
       align-items: center;
       gap: 8px;
       padding: 7px 8px;
@@ -538,6 +567,112 @@
       color: #c9c2b9;
       font-size: 12px;
       text-align: center;
+    }
+
+
+
+    #p2kCreationAnalyzer .p2k-status.p2k-warning {
+      background: rgba(222, 164, 38, .13);
+      color: #ffd078;
+    }
+
+    #p2kCreationAnalyzer .p2k-progress-track {
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .28);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07);
+    }
+
+    #p2kCreationAnalyzer .p2k-progress-bar {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #b96f0d, #f6b73c);
+      transition: width .16s ease;
+    }
+
+    #p2kCreationAnalyzer .p2k-metric-subvalue {
+      margin-top: 3px;
+      color: #bdb4a9;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    #p2kCreationAnalyzer .p2k-board-value {
+      color: #9fd8ff !important;
+      font-weight: 800;
+    }
+
+    #p2kCreationAnalyzer .p2k-status-pill.p2k-boards {
+      background: rgba(70, 142, 190, .17);
+      color: #b6e3ff;
+    }
+
+    #p2kCreationAnalyzer .p2k-match-boards {
+      min-width: 58px;
+      color: #b6e3ff !important;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-heading {
+      min-width: 0;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-average {
+      margin-top: 3px;
+      color: #91e09a;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-toggle {
+      display: inline-flex;
+      flex: 0 0 auto;
+      gap: 4px;
+      padding: 3px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 7px;
+      background: rgba(0, 0, 0, .18);
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-toggle-button {
+      min-height: 29px;
+      padding: 5px 9px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      color: #c9c2b9;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-toggle-button:hover {
+      color: #fff3df;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-toggle-button[aria-pressed="true"] {
+      border-color: rgba(246, 183, 60, .60);
+      background: rgba(217, 141, 24, .17);
+      color: #ffd078;
+    }
+
+    #p2kCreationAnalyzer .p2k-data-warning {
+      margin-top: 10px;
+      padding: 8px 9px;
+      border: 1px solid rgba(222, 164, 38, .28);
+      border-radius: 6px;
+      background: rgba(222, 164, 38, .07);
+      color: #e8cf99;
+      font-size: 11px;
+      line-height: 1.4;
     }
 
     @media (max-width: 680px) {
@@ -581,14 +716,77 @@
         grid-template-columns: auto minmax(0, 1fr);
       }
 
+      #p2kCreationAnalyzer .p2k-match-boards {
+        grid-column: 2;
+        text-align: left;
+      }
+
       #p2kCreationAnalyzer .p2k-match-date {
         grid-column: 2;
         white-space: normal;
       }
     }
-  </style>
 
-  <div class="p2k-header">
+
+    #p2kCreationAnalyzer .p2k-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    #p2kCreationAnalyzer .p2k-status-text {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    #p2kCreationAnalyzer .p2k-processing-actions {
+      display: none;
+      flex: 0 0 auto;
+      justify-content: flex-end;
+      margin: 0;
+    }
+
+    #p2kCreationAnalyzer .p2k-cancel-button {
+      padding: 7px 14px;
+      border: 1px solid rgba(255, 114, 95, .72);
+      border-radius: 7px;
+      background: rgba(217, 74, 58, .14);
+      color: #ff8b79;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #p2kCreationAnalyzer .p2k-cancel-button:hover:not(:disabled) {
+      filter: brightness(1.13);
+    }
+
+    #p2kCreationAnalyzer .p2k-cancel-button:disabled {
+      cursor: wait;
+      opacity: .6;
+    }
+
+    #p2kCreationAnalyzer .p2k-detail-note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .045);
+      color: #d7d2cb;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #p2kCreationAnalyzer .p2k-detail-note strong {
+      color: #ffd078;
+    }
+
+  </style>
+</head>
+<body>
+  <main id="p2kCreationAnalyzer">
+<div class="p2k-header">
     <h2>Promote to King Match Creation Analyzer</h2>
     <img
       class="p2k-logo"
@@ -598,28 +796,56 @@
     >
   </div>
 
-  <button id="p2kCreationAnalyzeButton" class="p2k-main-button" type="button">
-    Analyze matches
-  </button>
+  <button
+    id="p2kCreationAnalyzeButton"
+    class="p2k-main-button"
+    type="button"
+    disabled
+  >Detailed analyzis</button>
 
-  <div id="p2kCreationStatus" class="p2k-status" aria-live="polite"></div>
+  <div id="p2kCreationStatus" class="p2k-status" aria-live="polite">
+    <div class="p2k-status-row">
+      <div id="p2kCreationStatusText" class="p2k-status-text"></div>
+      <div id="p2kCreationProcessingActions" class="p2k-processing-actions">
+        <button id="p2kCreationCancelButton" class="p2k-cancel-button" type="button">
+          Cancel
+        </button>
+      </div>
+    </div>
+    <div id="p2kCreationProgressTrack" class="p2k-progress-track" aria-hidden="true">
+      <span id="p2kCreationProgressBar" class="p2k-progress-bar"></span>
+    </div>
+  </div>
   <div id="p2kCreationResults" class="p2k-results"></div>
-
   <script>
     (() => {
       "use strict";
 
       const MATCH_LIST_URL =
         "https://api.chess.com/pub/club/promote-to-king/matches";
+      const P2K_CLUB_SLUG = "promote-to-king";
       const REQUEST_ATTEMPTS = 3;
       const JSONP_TIMEOUT_MS = 20000;
+      const DAYS_RECENT = 10;
       const DAYS_CHART = 30;
 
       const root = document.getElementById("p2kCreationAnalyzer");
       const analyzeButton =
         document.getElementById("p2kCreationAnalyzeButton");
       const statusBox = document.getElementById("p2kCreationStatus");
+      const statusText = document.getElementById("p2kCreationStatusText");
+      const progressTrack = document.getElementById("p2kCreationProgressTrack");
+      const progressBar = document.getElementById("p2kCreationProgressBar");
+      const processingActions = document.getElementById("p2kCreationProcessingActions");
+      const cancelButton = document.getElementById("p2kCreationCancelButton");
       const resultsBox = document.getElementById("p2kCreationResults");
+
+      let basicData = null;
+      let currentRecords = null;
+      let activeRunId = 0;
+      let activeController = null;
+      let cancelRequested = false;
+      let isDetailedAnalysisRunning = false;
 
       class HttpError extends Error {
         constructor(status, url) {
@@ -627,6 +853,14 @@
           this.name = "HttpError";
           this.status = status;
           this.url = url;
+        }
+      }
+
+
+      class CancelledError extends Error {
+        constructor() {
+          super("Detailed analyzis cancelled");
+          this.name = "CancelledError";
         }
       }
 
@@ -639,32 +873,79 @@
           .replace(/'/g, "&#039;");
       }
 
-      function delay(milliseconds) {
-        return new Promise(resolve =>
-          window.setTimeout(resolve, milliseconds)
-        );
+      function throwIfCancelled(runId = null) {
+        if (
+          cancelRequested ||
+          (runId !== null && runId !== activeRunId)
+        ) {
+          throw new CancelledError();
+        }
       }
 
-      function setStatus(message, type = "working") {
+      function delay(milliseconds, runId = null) {
+        return new Promise((resolve, reject) => {
+          const timer = window.setTimeout(() => {
+            try {
+              throwIfCancelled(runId);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          }, milliseconds);
+
+          if (activeController && runId !== null) {
+            activeController.signal.addEventListener("abort", () => {
+              window.clearTimeout(timer);
+              reject(new CancelledError());
+            }, { once: true });
+          }
+        });
+      }
+
+      function setStatus(message, type = "working", progress = null, cancellable = false) {
         statusBox.style.display = "block";
         statusBox.classList.toggle("p2k-error", type === "error");
         statusBox.classList.toggle("p2k-success", type === "success");
-        statusBox.textContent = message;
+        statusBox.classList.toggle("p2k-warning", type === "warning");
+        statusText.textContent = message;
+
+        if (progress && progress.total > 0) {
+          progressTrack.style.display = "block";
+          progressBar.style.width = `${Math.max(
+            0,
+            Math.min(100, progress.current / progress.total * 100)
+          ).toFixed(1)}%`;
+        } else {
+          progressTrack.style.display = "none";
+          progressBar.style.width = "0%";
+        }
+
+        processingActions.style.display = cancellable ? "flex" : "none";
+        cancelButton.disabled = false;
       }
 
       function appendCallbackParameter(url, callbackName) {
         return `${url}${url.includes("?") ? "&" : "?"}callback=${encodeURIComponent(callbackName)}`;
       }
 
-      function loadJSONP(url) {
+      function loadJSONP(url, runId = null, signal = null) {
         return new Promise((resolve, reject) => {
+          try {
+            throwIfCancelled(runId);
+          } catch (error) {
+            reject(error);
+            return;
+          }
+
           const callbackName =
             `p2kCreationJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           const script = document.createElement("script");
           let timer = null;
+          let settled = false;
 
           const cleanup = () => {
             if (timer !== null) window.clearTimeout(timer);
+            if (signal) signal.removeEventListener("abort", onAbort);
             script.remove();
             try {
               delete window[callbackName];
@@ -673,20 +954,39 @@
             }
           };
 
-          window[callbackName] = data => {
+          const finish = (handler, value) => {
+            if (settled) return;
+            settled = true;
             cleanup();
-            resolve(data);
+            handler(value);
+          };
+
+          const onAbort = () => finish(reject, new CancelledError());
+
+          window[callbackName] = data => {
+            try {
+              throwIfCancelled(runId);
+              finish(resolve, data);
+            } catch (error) {
+              finish(reject, error);
+            }
           };
 
           script.onerror = () => {
-            cleanup();
-            reject(new Error(`JSONP request failed for ${url}`));
+            finish(reject, new Error(`JSONP request failed for ${url}`));
           };
 
           timer = window.setTimeout(() => {
-            cleanup();
-            reject(new Error(`JSONP request timed out for ${url}`));
+            finish(reject, new Error(`JSONP request timed out for ${url}`));
           }, JSONP_TIMEOUT_MS);
+
+          if (signal) {
+            if (signal.aborted) {
+              onAbort();
+              return;
+            }
+            signal.addEventListener("abort", onAbort, { once: true });
+          }
 
           script.src = appendCallbackParameter(url, callbackName);
           script.async = true;
@@ -694,43 +994,51 @@
         });
       }
 
-      async function requestJSONOnce(url) {
+      async function requestJSONOnce(url, runId = null, signal = null) {
+        throwIfCancelled(runId);
+
         try {
           const response = await fetch(url, {
             method: "GET",
             mode: "cors",
             cache: "no-store",
-            headers: { Accept: "application/json" }
+            headers: { Accept: "application/json" },
+            signal
           });
 
           if (!response.ok) {
             throw new HttpError(response.status, url);
           }
 
+          throwIfCancelled(runId);
           return await response.json();
         } catch (error) {
+          if (error?.name === "AbortError" || error instanceof CancelledError) {
+            throw new CancelledError();
+          }
           if (error instanceof HttpError) throw error;
-          return await loadJSONP(url);
+          return await loadJSONP(url, runId, signal);
         }
       }
 
-      async function loadJSON(url) {
+      async function loadJSON(url, runId = null, signal = null) {
         let lastError = null;
 
-        for (
-          let attempt = 1;
-          attempt <= REQUEST_ATTEMPTS;
-          attempt += 1
-        ) {
+        for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt += 1) {
+          throwIfCancelled(runId);
           try {
-            return await requestJSONOnce(url);
+            return await requestJSONOnce(url, runId, signal);
           } catch (error) {
+            if (error instanceof CancelledError) throw error;
             lastError = error;
             if (error instanceof HttpError && error.status === 404) {
               throw error;
             }
             if (attempt < REQUEST_ATTEMPTS) {
-              await delay(attempt * 800);
+              const retryDelay = error instanceof HttpError && error.status === 429
+                ? attempt * 1800
+                : attempt * 800;
+              await delay(retryDelay, runId);
             }
           }
         }
@@ -806,90 +1114,66 @@
         }).format(dateFromKey(key));
       }
 
-      function countMatchesByDate(matches, allowedKeys = null) {
-        const counts = new Map();
+      function normalizeBoards(value) {
+        const boards = Number(value);
+        return Number.isFinite(boards) && boards >= 0
+          ? Math.round(boards)
+          : null;
+      }
+
+      function sumBoards(records) {
+        return records.reduce((result, record) => {
+          if (record.boards === null) {
+            result.unknown += 1;
+          } else {
+            result.total += record.boards;
+          }
+          return result;
+        }, { total: 0, unknown: 0 });
+      }
+
+      function formatBoards(boardSummary, short = false) {
+        const total = Number(boardSummary?.total || 0);
+        const unknown = Number(boardSummary?.unknown || 0);
+        if (unknown === 0) return String(total);
+        if (total === 0) return short ? "?" : "Unavailable";
+        return short ? `${total}+?` : `${total} + unavailable`;
+      }
+
+      function aggregateByDate(records, allowedKeys = null) {
+        const aggregates = new Map();
 
         if (allowedKeys) {
-          allowedKeys.forEach(key => counts.set(key, 0));
+          allowedKeys.forEach(key => aggregates.set(key, {
+            matches: 0,
+            boards: 0,
+            unknownBoards: 0
+          }));
         }
 
-        matches.forEach(match => {
-          const key = dateKeyFromTimestamp(match?.start_time);
+        records.forEach(record => {
+          const key = dateKeyFromTimestamp(record.startTime);
           if (!key) return;
-          if (allowedKeys && !counts.has(key)) return;
-          counts.set(key, (counts.get(key) || 0) + 1);
-        });
+          if (allowedKeys && !aggregates.has(key)) return;
 
-        return counts;
-      }
-
-      function renderMetric(value, label) {
-        return `
-          <div class="p2k-metric">
-            <div class="p2k-metric-value">${escapeHTML(value)}</div>
-            <div class="p2k-metric-label">${escapeHTML(label)}</div>
-          </div>
-        `;
-      }
-
-      function renderRegistrationTable(registered) {
-        const counts = new Map();
-        let noStartDateCount = 0;
-
-        registered.forEach(match => {
-          const key = dateKeyFromTimestamp(match?.start_time);
-          if (!key) {
-            noStartDateCount += 1;
-            return;
+          if (!aggregates.has(key)) {
+            aggregates.set(key, {
+              matches: 0,
+              boards: 0,
+              unknownBoards: 0
+            });
           }
-          counts.set(key, (counts.get(key) || 0) + 1);
+
+          const aggregate = aggregates.get(key);
+          aggregate.matches += 1;
+          if (record.boards === null) {
+            aggregate.unknownBoards += 1;
+          } else {
+            aggregate.boards += record.boards;
+          }
         });
 
-        const rows = [...counts.entries()]
-          .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-          .map(([date, count]) => `
-            <tr>
-              <td class="p2k-date">${escapeHTML(formatDate(date))}</td>
-              <td class="p2k-count">${count}</td>
-            </tr>
-          `);
-
-        if (noStartDateCount > 0) {
-          rows.push(`
-            <tr>
-              <td class="p2k-no-date">No start date</td>
-              <td class="p2k-count">${noStartDateCount}</td>
-            </tr>
-          `);
-        }
-
-        if (rows.length === 0) {
-          rows.push(`
-            <tr>
-              <td>No registered matches</td>
-              <td class="p2k-count">0</td>
-            </tr>
-          `);
-        }
-
-        return `
-          <div class="p2k-section">
-            <div class="p2k-section-title">
-              Registered matches by start date
-            </div>
-            <div class="p2k-table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Calendar date (UTC)</th>
-                    <th>Matches</th>
-                  </tr>
-                </thead>
-                <tbody>${rows.join("")}</tbody>
-              </table>
-            </div>
-          </div>
-        `;
+        return aggregates;
       }
 
       function opponentSlug(opponentUrl) {
@@ -925,10 +1209,13 @@
           : "https://www.chess.com/clubs";
       }
 
-      function matchWebUrl(matchData) {
-        const apiUrl = String(matchData?.["@id"] || "");
-        if (/\/match\/live\//i.test(apiUrl)) {
-          return apiUrl || "https://www.chess.com/clubs";
+      function matchWebUrl(summary, detail) {
+        if (detail?.url) return detail.url;
+
+        const apiUrl = String(summary?.["@id"] || detail?.["@id"] || "");
+        const liveId = apiUrl.match(/\/match\/live\/(\d+)/i);
+        if (liveId) {
+          return `https://www.chess.com/club/matches/live/${liveId[1]}`;
         }
 
         const matchId = apiUrl.match(/\/match\/(\d+)/i);
@@ -937,29 +1224,310 @@
           : apiUrl || "https://www.chess.com/clubs";
       }
 
+      function extractOpponent(summary, detail) {
+        const summaryOpponent = String(summary?.opponent || "");
+        const expectedSlug = opponentSlug(summaryOpponent).toLowerCase();
+        const teams = detail?.teams && typeof detail.teams === "object"
+          ? Object.values(detail.teams).filter(Boolean)
+          : [];
+
+        let opponentTeam = teams.find(team => {
+          const teamSlug = opponentSlug(team?.["@id"] || team?.url).toLowerCase();
+          return expectedSlug && teamSlug === expectedSlug;
+        });
+
+        if (!opponentTeam) {
+          opponentTeam = teams.find(team => {
+            const teamSlug = opponentSlug(team?.["@id"] || team?.url).toLowerCase();
+            return teamSlug && teamSlug !== P2K_CLUB_SLUG;
+          });
+        }
+
+        const apiUrl = String(opponentTeam?.["@id"] || summaryOpponent || "");
+        const webUrl = String(opponentTeam?.url || opponentWebUrl(apiUrl));
+        const name = String(
+          opponentTeam?.name || opponentNameFromUrl(apiUrl || summaryOpponent)
+        );
+
+        return { apiUrl, webUrl, name };
+      }
+
+      function createRecord(summary, status, detail, error = null) {
+        const opponent = extractOpponent(summary, detail);
+        const detailStartTime = Number(detail?.start_time);
+        const summaryStartTime = Number(summary?.start_time);
+        const startTime = Number.isFinite(detailStartTime) && detailStartTime > 0
+          ? detailStartTime
+          : Number.isFinite(summaryStartTime) && summaryStartTime > 0
+            ? summaryStartTime
+            : null;
+
+        return {
+          status,
+          summary,
+          detail,
+          error,
+          detailState: detail ? "loaded" : error ? "failed" : "pending",
+          name: String(detail?.name || summary?.name || "Unnamed match"),
+          apiUrl: String(summary?.["@id"] || detail?.["@id"] || ""),
+          webUrl: matchWebUrl(summary, detail),
+          startTime,
+          boards: normalizeBoards(detail?.boards),
+          opponentApiUrl: opponent.apiUrl,
+          opponentWebUrl: opponent.webUrl,
+          opponentName: opponent.name
+        };
+      }
+
+      function listFromData(data, preferredName, fallbackName = null) {
+        if (Array.isArray(data?.[preferredName])) return data[preferredName];
+        if (fallbackName && Array.isArray(data?.[fallbackName])) {
+          return data[fallbackName];
+        }
+        return [];
+      }
+
+      function buildBasicRecords(data) {
+        const registered = listFromData(data, "registered");
+        const inProgress = listFromData(data, "in_progress", "on_going");
+        const finished = listFromData(data, "finished");
+        const chartKeySet = new Set(dateRangeKeys(DAYS_CHART));
+        const recentFinished = finished.filter(match =>
+          chartKeySet.has(dateKeyFromTimestamp(match?.start_time))
+        );
+
+        return {
+          registered: registered.map(summary =>
+            createRecord(summary, "registered", null)
+          ),
+          inProgress: inProgress.map(summary =>
+            createRecord(summary, "inProgress", null)
+          ),
+          finished: recentFinished.map(summary =>
+            createRecord(summary, "finished", null)
+          ),
+          failed: 0,
+          processed: 0,
+          requested: 0
+        };
+      }
+
+      function detailQueue(records) {
+        const rawQueue = [
+          ...records.registered,
+          ...records.inProgress,
+          ...records.finished
+        ];
+        const seenUrls = new Set();
+
+        return rawQueue.filter(record => {
+          const url = String(record.apiUrl || record.summary?.["@id"] || "");
+          if (!url || seenUrls.has(url)) return false;
+          seenUrls.add(url);
+          return true;
+        });
+      }
+
+      async function loadDetailedRecords(records, runId) {
+        const queue = detailQueue(records);
+        records.failed = 0;
+        records.processed = 0;
+        records.requested = queue.length;
+
+        if (queue.length === 0) return records;
+
+        for (let index = 0; index < queue.length; index += 1) {
+          throwIfCancelled(runId);
+          const record = queue[index];
+          const current = index + 1;
+
+          setStatus(
+            `Processing match ${current} of ${queue.length}`,
+            "working",
+            { current: index, total: queue.length },
+            true
+          );
+
+          let detail = null;
+          let error = null;
+          try {
+            detail = await loadJSON(
+              record.summary["@id"],
+              runId,
+              activeController?.signal || null
+            );
+          } catch (caughtError) {
+            if (caughtError instanceof CancelledError) throw caughtError;
+            console.error(caughtError);
+            error = caughtError;
+            records.failed += 1;
+          }
+
+          Object.assign(
+            record,
+            createRecord(record.summary, record.status, detail, error)
+          );
+          records.processed = current;
+
+          renderAnalysis(records, {
+            phase: "loading",
+            processed: current,
+            total: queue.length
+          });
+
+          setStatus(
+            `Processing match ${current} of ${queue.length}`,
+            "working",
+            { current, total: queue.length },
+            true
+          );
+        }
+
+        return records;
+      }
+
+      function renderMetric(value, label, subvalue = "") {
+        return `
+          <div class="p2k-metric">
+            <div class="p2k-metric-value">${escapeHTML(value)}</div>
+            <div class="p2k-metric-label">${escapeHTML(label)}</div>
+            ${subvalue
+              ? `<div class="p2k-metric-subvalue">${escapeHTML(subvalue)}</div>`
+              : ""}
+          </div>
+        `;
+      }
+
+      function renderRegistrationTable(records) {
+        const aggregates = aggregateByDate(records);
+        const noDateRecords = records.filter(record => !record.startTime);
+        const noDateBoards = sumBoards(noDateRecords);
+
+        const rows = [...aggregates.entries()]
+          .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+          .map(([date, aggregate]) => `
+            <tr>
+              <td class="p2k-date">${escapeHTML(formatDate(date))}</td>
+              <td class="p2k-count">${aggregate.matches}</td>
+              <td class="p2k-board-value">${escapeHTML(formatBoards({
+                total: aggregate.boards,
+                unknown: aggregate.unknownBoards
+              }, true))}</td>
+            </tr>
+          `);
+
+        if (noDateRecords.length > 0) {
+          rows.push(`
+            <tr>
+              <td class="p2k-no-date">No start date</td>
+              <td class="p2k-count">${noDateRecords.length}</td>
+              <td class="p2k-board-value">${escapeHTML(formatBoards(noDateBoards, true))}</td>
+            </tr>
+          `);
+        }
+
+        if (rows.length === 0) {
+          rows.push(`
+            <tr>
+              <td>No registered matches</td>
+              <td class="p2k-count">0</td>
+              <td class="p2k-board-value">0</td>
+            </tr>
+          `);
+        }
+
+        return `
+          <div class="p2k-section">
+            <div class="p2k-section-title">
+              Registered matches by start date
+            </div>
+            <div class="p2k-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Calendar date (UTC)</th>
+                    <th>Matches</th>
+                    <th>Boards</th>
+                  </tr>
+                </thead>
+                <tbody>${rows.join("")}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderRecentTable(records) {
+        const keys = dateRangeKeys(DAYS_RECENT);
+        const aggregates = aggregateByDate(records, keys);
+        const todayKey = keys[keys.length - 1];
+
+        const rows = keys.map(key => {
+          const aggregate = aggregates.get(key);
+          return `
+            <tr class="${key === todayKey ? "p2k-today" : ""}">
+              <td class="p2k-date">${escapeHTML(formatDate(key))}</td>
+              <td class="p2k-count">${aggregate.matches}</td>
+              <td class="p2k-board-value">${escapeHTML(formatBoards({
+                total: aggregate.boards,
+                unknown: aggregate.unknownBoards
+              }, true))}</td>
+            </tr>
+          `;
+        }).join("");
+
+        return `
+          <div class="p2k-section">
+            <div class="p2k-section-title">
+              Matches started during the last ${DAYS_RECENT} days
+            </div>
+            <div class="p2k-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Calendar date (UTC)</th>
+                    <th>Matches</th>
+                    <th>Boards</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+            <div class="p2k-note">
+              Includes in-progress and finished matches. Today is highlighted.
+            </div>
+          </div>
+        `;
+      }
+
       function buildOpponentGroups(registered, inProgress) {
         const groups = new Map();
 
-        const addMatches = (matches, status) => {
-          matches.forEach(match => {
-            const opponentUrl = String(match?.opponent || "");
-            const key = opponentUrl || `unknown:${match?.["@id"] || match?.name || Math.random()}`;
+        const addRecord = record => {
+          const slug = opponentSlug(record.opponentApiUrl || record.opponentWebUrl);
+          const key = slug || record.opponentName || `unknown:${record.apiUrl}`;
 
-            if (!groups.has(key)) {
-              groups.set(key, {
-                opponentUrl,
-                opponentName: opponentNameFromUrl(opponentUrl),
-                registered: [],
-                inProgress: []
-              });
-            }
+          if (!groups.has(key)) {
+            groups.set(key, {
+              opponentApiUrl: record.opponentApiUrl,
+              opponentWebUrl: record.opponentWebUrl,
+              opponentName: record.opponentName,
+              registered: [],
+              inProgress: []
+            });
+          }
 
-            groups.get(key)[status].push(match);
-          });
+          const group = groups.get(key);
+          if (!group.opponentName || group.opponentName === "Unknown opponent") {
+            group.opponentName = record.opponentName;
+          }
+          if (!group.opponentApiUrl) group.opponentApiUrl = record.opponentApiUrl;
+          if (!group.opponentWebUrl) group.opponentWebUrl = record.opponentWebUrl;
+          group[record.status].push(record);
         };
 
-        addMatches(registered, "registered");
-        addMatches(inProgress, "inProgress");
+        registered.forEach(addRecord);
+        inProgress.forEach(addRecord);
 
         return [...groups.values()].sort((groupA, groupB) =>
           groupB.registered.length - groupA.registered.length ||
@@ -968,34 +1536,36 @@
         );
       }
 
-      function renderOpponentMatch(match, status) {
-        const dateKey = dateKeyFromTimestamp(match?.start_time);
+      function renderOpponentMatch(record) {
+        const dateKey = dateKeyFromTimestamp(record.startTime);
+        const isRegistered = record.status === "registered";
         const dateText = dateKey
-          ? `${status === "registered" ? "Starts" : "Started"} ${formatDate(dateKey)}`
-          : status === "registered"
+          ? `${isRegistered ? "Starts" : "Started"} ${formatDate(dateKey)}`
+          : isRegistered
             ? "No start date"
             : "Start date unavailable";
-        const statusLabel = status === "registered"
-          ? "Registration"
-          : "In progress";
-        const statusClass = status === "registered"
-          ? "p2k-registered"
-          : "p2k-progress";
+        const statusLabel = isRegistered ? "Registration" : "In progress";
+        const statusClass = isRegistered ? "p2k-registered" : "p2k-progress";
+        const boardText = record.boards === null
+          ? "Boards unavailable"
+          : `${record.boards} board${record.boards === 1 ? "" : "s"}`;
 
         return `
           <div
             class="p2k-opponent-match"
-            data-status="${status}"
-            data-match-search="${escapeHTML(String(match?.name || "Unnamed match").toLowerCase())}"
+            data-status="${record.status}"
+            data-board-count="${record.boards === null ? "" : record.boards}"
+            data-match-search="${escapeHTML(record.name.toLowerCase())}"
           >
             <span class="p2k-status-pill ${statusClass}">${statusLabel}</span>
             <a
               class="p2k-match-name"
-              href="${escapeHTML(matchWebUrl(match))}"
+              href="${escapeHTML(record.webUrl)}"
               target="_blank"
               rel="noopener"
               title="Open this match on Chess.com"
-            >${escapeHTML(match?.name || "Unnamed match")}</a>
+            >${escapeHTML(record.name)}</a>
+            <span class="p2k-match-boards">${escapeHTML(boardText)}</span>
             <span class="p2k-match-date">${escapeHTML(dateText)}</span>
           </div>
         `;
@@ -1007,45 +1577,57 @@
         ).length;
 
         const cards = groups.map((group, index) => {
+          const registrationBoards = sumBoards(group.registered);
+          const progressBoards = sumBoards(group.inProgress);
+          const totalBoards = sumBoards([
+            ...group.registered,
+            ...group.inProgress
+          ]);
           const matches = [
-            ...group.registered.map(match => ({ match, status: "registered" })),
-            ...group.inProgress.map(match => ({ match, status: "inProgress" }))
-          ].sort((itemA, itemB) => {
-            if (itemA.status !== itemB.status) {
-              return itemA.status === "registered" ? -1 : 1;
+            ...group.registered,
+            ...group.inProgress
+          ].sort((recordA, recordB) => {
+            if (recordA.status !== recordB.status) {
+              return recordA.status === "registered" ? -1 : 1;
             }
-
-            return Number(itemA.match?.start_time || Number.MAX_SAFE_INTEGER) -
-              Number(itemB.match?.start_time || Number.MAX_SAFE_INTEGER);
+            return Number(recordA.startTime || Number.MAX_SAFE_INTEGER) -
+              Number(recordB.startTime || Number.MAX_SAFE_INTEGER);
           });
+          const slug = opponentSlug(
+            group.opponentApiUrl || group.opponentWebUrl
+          );
 
           return `
             <details
               class="p2k-opponent-card"
               data-opponent-index="${index}"
+              data-opponent-key="${escapeHTML(slug || group.opponentName.toLowerCase())}"
               data-registered-count="${group.registered.length}"
-              data-opponent-search="${escapeHTML(`${group.opponentName} ${opponentSlug(group.opponentUrl)}`.toLowerCase())}"
+              data-opponent-search="${escapeHTML(`${group.opponentName} ${slug}`.toLowerCase())}"
             >
               <summary>
                 <span class="p2k-opponent-name">${escapeHTML(group.opponentName)}</span>
                 <span class="p2k-opponent-counts">
                   <span class="p2k-status-pill p2k-registered">
-                    ${group.registered.length} in registration
+                    ${group.registered.length} in registration · ${escapeHTML(formatBoards(registrationBoards, true))} boards
                   </span>
                   <span class="p2k-status-pill p2k-progress">
-                    ${group.inProgress.length} in progress
+                    ${group.inProgress.length} in progress · ${escapeHTML(formatBoards(progressBoards, true))} boards
+                  </span>
+                  <span class="p2k-status-pill p2k-boards">
+                    ${escapeHTML(formatBoards(totalBoards, true))} total boards
                   </span>
                 </span>
               </summary>
               <div class="p2k-opponent-body">
                 <a
                   class="p2k-opponent-club-link"
-                  href="${escapeHTML(opponentWebUrl(group.opponentUrl))}"
+                  href="${escapeHTML(group.opponentWebUrl || opponentWebUrl(group.opponentApiUrl))}"
                   target="_blank"
                   rel="noopener"
                 >Open opponent club ↗</a>
                 <div class="p2k-opponent-matches">
-                  ${matches.map(item => renderOpponentMatch(item.match, item.status)).join("")}
+                  ${matches.map(renderOpponentMatch).join("")}
                 </div>
               </div>
             </details>
@@ -1138,6 +1720,8 @@
           const searchTerm = normalizeSearch(searchInput?.value);
           let visibleOpponents = 0;
           let visibleMatches = 0;
+          let visibleBoards = 0;
+          let unknownBoards = 0;
 
           cards.forEach(card => {
             const opponentSearch = normalizeSearch(
@@ -1161,7 +1745,15 @@
               const showMatch = statusMatches && textMatches;
 
               matchRow.hidden = !showMatch;
-              if (showMatch) cardVisibleMatches += 1;
+              if (showMatch) {
+                cardVisibleMatches += 1;
+                const boardCount = Number(matchRow.dataset.boardCount);
+                if (matchRow.dataset.boardCount === "" || !Number.isFinite(boardCount)) {
+                  unknownBoards += 1;
+                } else {
+                  visibleBoards += boardCount;
+                }
+              }
             });
 
             const showCard = cardVisibleMatches > 0;
@@ -1181,9 +1773,13 @@
             const searchSuffix = searchTerm
               ? ` matching “${searchInput.value.trim()}”`
               : "";
+            const boardText = formatBoards({
+              total: visibleBoards,
+              unknown: unknownBoards
+            });
             visibleSummary.textContent =
-              `Showing ${visibleOpponents} opponent${visibleOpponents === 1 ? "" : "s"}${searchSuffix} ` +
-              `and ${visibleMatches} match${visibleMatches === 1 ? "" : "es"}. ` +
+              `Showing ${visibleOpponents} opponent${visibleOpponents === 1 ? "" : "s"}${searchSuffix}, ` +
+              `${visibleMatches} match${visibleMatches === 1 ? "" : "es"} and ${boardText} boards. ` +
               "Click an opponent to list its matches.";
           }
         };
@@ -1236,7 +1832,8 @@
 
             event.preventDefault();
             const direction = event.key === "ArrowRight" ? 1 : -1;
-            const nextIndex = (index + direction + tabButtons.length) % tabButtons.length;
+            const nextIndex =
+              (index + direction + tabButtons.length) % tabButtons.length;
             tabButtons[nextIndex].focus();
             activateTab(tabButtons[nextIndex].dataset.tab);
           });
@@ -1245,15 +1842,15 @@
         activateTab("creation");
       }
 
-      function renderChart(dateKeys, counts, average) {
-        const values = dateKeys.map(key => counts.get(key) || 0);
+      function chartSVG(dateKeys, values, average, mode) {
         const maxValue = Math.max(1, ...values, average);
         const tickStep = Math.max(1, Math.ceil(maxValue / 4));
         const axisMax = tickStep * 4;
+        const unit = mode === "boards" ? "board" : "started match";
 
         const width = 960;
         const height = 340;
-        const left = 48;
+        const left = 52;
         const right = 18;
         const top = 24;
         const bottom = 58;
@@ -1299,7 +1896,7 @@
 
           return `
             <g>
-              <title>${escapeHTML(formatDate(key))}: ${value} started match${value === 1 ? "" : "es"}</title>
+              <title>${escapeHTML(formatDate(key))}: ${value} ${unit}${value === 1 ? "" : "s"}</title>
               <rect
                 x="${x.toFixed(2)}"
                 y="${y.toFixed(2)}"
@@ -1335,48 +1932,71 @@
           top + chartHeight - (average / axisMax) * chartHeight;
 
         return `
+          ${gridLines.join("")}
+          <line
+            x1="${left}"
+            y1="${top + chartHeight}"
+            x2="${width - right}"
+            y2="${top + chartHeight}"
+            stroke="rgba(255,255,255,.28)"
+            stroke-width="1"
+          />
+          ${bars}
+          <line
+            x1="${left}"
+            y1="${averageY.toFixed(2)}"
+            x2="${width - right}"
+            y2="${averageY.toFixed(2)}"
+            stroke="#91e09a"
+            stroke-width="2"
+            stroke-dasharray="7 5"
+          />
+          <text
+            x="${width - right - 4}"
+            y="${Math.max(top + 12, averageY - 6).toFixed(2)}"
+            fill="#91e09a"
+            font-size="11"
+            font-weight="700"
+            text-anchor="end"
+          >Average: ${average.toFixed(2)}</text>
+        `;
+      }
+
+      function renderChartSection(chartData) {
+        return `
           <div class="p2k-section">
-            <div class="p2k-section-title">
-              Started matches — last ${DAYS_CHART} days
+            <div class="p2k-section-title-row">
+              <div class="p2k-chart-heading">
+                <div class="p2k-section-title">
+                  Started matches — last ${DAYS_CHART} days
+                </div>
+                <div id="p2kChartAverage" class="p2k-chart-average"></div>
+              </div>
+              <div class="p2k-chart-toggle" role="group" aria-label="Chart data">
+                <button
+                  class="p2k-chart-toggle-button"
+                  type="button"
+                  data-chart-mode="matches"
+                  aria-pressed="true"
+                >Matches</button>
+                <button
+                  class="p2k-chart-toggle-button"
+                  type="button"
+                  data-chart-mode="boards"
+                  aria-pressed="false"
+                >Boards</button>
+              </div>
             </div>
             <div class="p2k-chart-wrap">
               <svg
+                id="p2kCreationChart"
                 class="p2k-chart"
-                viewBox="0 0 ${width} ${height}"
+                viewBox="0 0 960 340"
                 role="img"
-                aria-label="Bar chart of matches started during the last ${DAYS_CHART} days"
-              >
-                ${gridLines.join("")}
-                <line
-                  x1="${left}"
-                  y1="${top + chartHeight}"
-                  x2="${width - right}"
-                  y2="${top + chartHeight}"
-                  stroke="rgba(255,255,255,.28)"
-                  stroke-width="1"
-                />
-                ${bars}
-                <line
-                  x1="${left}"
-                  y1="${averageY.toFixed(2)}"
-                  x2="${width - right}"
-                  y2="${averageY.toFixed(2)}"
-                  stroke="#91e09a"
-                  stroke-width="2"
-                  stroke-dasharray="7 5"
-                />
-                <text
-                  x="${width - right - 4}"
-                  y="${Math.max(top + 12, averageY - 6).toFixed(2)}"
-                  fill="#91e09a"
-                  font-size="11"
-                  font-weight="700"
-                  text-anchor="end"
-                >Average: ${average.toFixed(2)}</text>
-              </svg>
+              ></svg>
             </div>
             <div class="p2k-chart-legend">
-              <span><i class="p2k-swatch"></i>Started matches</span>
+              <span><i class="p2k-swatch"></i><b id="p2kChartLegendLabel">Started matches</b></span>
               <span><i class="p2k-average-line"></i>30-day daily average</span>
             </div>
             <div class="p2k-note">
@@ -1387,33 +2007,201 @@
         `;
       }
 
-      function renderAnalysis(data) {
-        const registered = Array.isArray(data?.registered)
-          ? data.registered
-          : [];
+      function bindChartToggle(chartData) {
+        const svg = root.querySelector("#p2kCreationChart");
+        const averageLabel = root.querySelector("#p2kChartAverage");
+        const legendLabel = root.querySelector("#p2kChartLegendLabel");
+        const buttons = [...root.querySelectorAll("[data-chart-mode]")];
 
-        const inProgress = Array.isArray(data?.in_progress)
-          ? data.in_progress
-          : Array.isArray(data?.on_going)
-            ? data.on_going
-            : [];
+        const draw = mode => {
+          const isBoards = mode === "boards";
+          const values = isBoards
+            ? chartData.boardValues
+            : chartData.matchValues;
+          const average = isBoards
+            ? chartData.averageBoards
+            : chartData.averageMatches;
+          const noun = isBoards ? "boards" : "matches";
 
-        const finished = Array.isArray(data?.finished)
-          ? data.finished
-          : [];
+          svg.innerHTML = chartSVG(
+            chartData.dateKeys,
+            values,
+            average,
+            mode
+          );
+          svg.setAttribute(
+            "aria-label",
+            `Bar chart of ${noun} started during the last ${DAYS_CHART} days`
+          );
+          averageLabel.textContent =
+            `Average: ${average.toFixed(2)} started ${noun} per day`;
+          legendLabel.textContent = isBoards
+            ? "Started-match boards"
+            : "Started matches";
 
-        const startedMatches = [...inProgress, ...finished];
+          buttons.forEach(button => {
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.chartMode === mode)
+            );
+          });
+        };
+
+        buttons.forEach(button => {
+          button.addEventListener("click", () => {
+            draw(button.dataset.chartMode);
+          });
+        });
+
+        draw("matches");
+      }
+
+      function captureViewState() {
+        if (!resultsBox.innerHTML) return null;
+
+        return {
+          activeTab: root.querySelector('.p2k-tab-button[aria-selected="true"]')?.dataset.tab || "creation",
+          opponentSearch: root.querySelector("#p2kOpponentSearch")?.value || "",
+          opponentFilter: root.querySelector('input[name="p2kOpponentStatusFilter"]:checked')?.value || "all",
+          chartMode: root.querySelector('[data-chart-mode][aria-pressed="true"]')?.dataset.chartMode || "matches",
+          expandedOpponents: [...root.querySelectorAll(".p2k-opponent-card[open]")]
+            .map(card => card.dataset.opponentKey)
+            .filter(Boolean)
+        };
+      }
+
+      function restoreViewState(state) {
+        if (!state) return;
+
+        const tabButton = root.querySelector(
+          `.p2k-tab-button[data-tab="${state.activeTab}"]`
+        );
+        tabButton?.click();
+
+        const searchInput = root.querySelector("#p2kOpponentSearch");
+        if (searchInput) searchInput.value = state.opponentSearch;
+
+        const filter = root.querySelector(
+          `input[name="p2kOpponentStatusFilter"][value="${state.opponentFilter}"]`
+        );
+        if (filter) filter.checked = true;
+        searchInput?.dispatchEvent(new Event("input", { bubbles: true }));
+
+        const expanded = new Set(state.expandedOpponents || []);
+        root.querySelectorAll(".p2k-opponent-card").forEach(card => {
+          card.open = expanded.has(card.dataset.opponentKey);
+        });
+
+        const chartButton = root.querySelector(
+          `[data-chart-mode="${state.chartMode}"]`
+        );
+        chartButton?.click();
+      }
+
+      function renderAnalysis(records, analysisState = { phase: "basic" }) {
+        const viewState = captureViewState();
+        const startedRecords = [
+          ...records.inProgress,
+          ...records.finished
+        ];
         const chartKeys = dateRangeKeys(DAYS_CHART);
-        const chartCounts =
-          countMatchesByDate(startedMatches, chartKeys);
-
-        const startedLast30Days = chartKeys.reduce(
-          (total, key) => total + (chartCounts.get(key) || 0),
+        const chartAggregates = aggregateByDate(startedRecords, chartKeys);
+        const matchValues = chartKeys.map(key =>
+          chartAggregates.get(key).matches
+        );
+        const boardValues = chartKeys.map(key =>
+          chartAggregates.get(key).boards
+        );
+        const startedMatchesLast30 = matchValues.reduce(
+          (total, value) => total + value,
           0
         );
+        const startedBoardsLast30 = boardValues.reduce(
+          (total, value) => total + value,
+          0
+        );
+        const unknownRecentBoards = chartKeys.reduce(
+          (total, key) => total + chartAggregates.get(key).unknownBoards,
+          0
+        );
+        const averageMatches = startedMatchesLast30 / DAYS_CHART;
+        const averageBoards = startedBoardsLast30 / DAYS_CHART;
+        const registrationBoards = sumBoards(records.registered);
+        const progressBoards = sumBoards(records.inProgress);
+        const opponentGroups = buildOpponentGroups(
+          records.registered,
+          records.inProgress
+        );
 
-        const dailyAverage = startedLast30Days / DAYS_CHART;
-        const opponentGroups = buildOpponentGroups(registered, inProgress);
+        const chartData = {
+          dateKeys: chartKeys,
+          matchValues,
+          boardValues,
+          averageMatches,
+          averageBoards
+        };
+
+        const allRecords = [
+          ...records.registered,
+          ...records.inProgress,
+          ...records.finished
+        ];
+        const pendingCount = allRecords.filter(
+          record => record.detailState === "pending"
+        ).length;
+        const failedCount = allRecords.filter(
+          record => record.detailState === "failed"
+        ).length;
+        const loadedCount = allRecords.filter(
+          record => record.detailState === "loaded"
+        ).length;
+        const knownRecentBoards = startedRecords.filter(
+          record => record.boards !== null &&
+            chartKeys.includes(dateKeyFromTimestamp(record.startTime))
+        ).length;
+
+        let detailNote = "";
+        if (analysisState.phase === "basic") {
+          detailNote = `
+            <div class="p2k-detail-note">
+              <strong>Basic statistics are loaded automatically.</strong>
+              Board counts are shown as unavailable until you select
+              <strong>Detailed analyzis</strong>.
+            </div>
+          `;
+        } else if (analysisState.phase === "loading") {
+          detailNote = `
+            <div class="p2k-detail-note">
+              <strong>Board information is updating live:</strong>
+              ${analysisState.processed || loadedCount} of
+              ${analysisState.total || records.requested} match details processed.
+              Current board totals and averages include the values loaded so far.
+            </div>
+          `;
+        } else if (analysisState.phase === "cancelled") {
+          detailNote = `
+            <div class="p2k-detail-note">
+              <strong>Detailed analyzis was cancelled.</strong>
+              The ${loadedCount} successfully loaded match details remain visible;
+              ${pendingCount} are still pending${failedCount ? ` and ${failedCount} failed` : ""}.
+            </div>
+          `;
+        } else if (failedCount > 0 || pendingCount > 0) {
+          detailNote = `
+            <div class="p2k-data-warning">
+              ${failedCount} match detail request${failedCount === 1 ? "" : "s"} failed
+              and ${pendingCount} match detail${pendingCount === 1 ? " is" : "s are"} unavailable.
+              Board totals exclude those matches.
+            </div>
+          `;
+        }
+
+        const averageBoardsDisplay = knownRecentBoards > 0
+          ? averageBoards.toFixed(2)
+          : "—";
+        const boardAverageSubvalue = unknownRecentBoards > 0
+          ? `${startedBoardsLast30} known boards; ${unknownRecentBoards} match${unknownRecentBoards === 1 ? "" : "es"} pending/unavailable`
+          : `${startedBoardsLast30} during ${DAYS_CHART} days`;
 
         resultsBox.innerHTML = `
           <div class="p2k-tabs" role="tablist" aria-label="Analyzer displays">
@@ -1443,13 +2231,39 @@
             data-tab-panel="creation"
           >
             <div class="p2k-metrics">
-              ${renderMetric(registered.length, "Matches in registration")}
-              ${renderMetric(inProgress.length, "Matches in progress")}
-              ${renderMetric(startedLast30Days, `Started in ${DAYS_CHART} days`)}
-              ${renderMetric(dailyAverage.toFixed(2), "Average started per day")}
+              ${renderMetric(
+                records.registered.length,
+                "Matches in registration",
+                `${formatBoards(registrationBoards)} boards`
+              )}
+              ${renderMetric(
+                formatBoards(registrationBoards, true),
+                "Boards in registration"
+              )}
+              ${renderMetric(
+                records.inProgress.length,
+                "Matches in progress",
+                `${formatBoards(progressBoards)} boards`
+              )}
+              ${renderMetric(
+                formatBoards(progressBoards, true),
+                "Boards in progress"
+              )}
+              ${renderMetric(
+                averageMatches.toFixed(2),
+                "Average started matches/day",
+                `${startedMatchesLast30} during ${DAYS_CHART} days`
+              )}
+              ${renderMetric(
+                averageBoardsDisplay,
+                "Average started boards/day",
+                boardAverageSubvalue
+              )}
             </div>
-            ${renderRegistrationTable(registered)}
-            ${renderChart(chartKeys, chartCounts, dailyAverage)}
+            ${detailNote}
+            ${renderRegistrationTable(records.registered)}
+            ${renderRecentTable(startedRecords)}
+            ${renderChartSection(chartData)}
           </div>
 
           <div
@@ -1460,37 +2274,119 @@
             hidden
           >
             ${renderOpponents(opponentGroups)}
+            ${detailNote}
           </div>
         `;
 
         resultsBox.style.display = "block";
         bindTabs();
         bindOpponentControls();
+        bindChartToggle(chartData);
+        restoreViewState(viewState);
       }
 
-      async function analyzeMatches() {
+      async function loadBasicStatistics() {
         analyzeButton.disabled = true;
-        analyzeButton.textContent = "Analyzing...";
-        resultsBox.style.display = "none";
-        setStatus("Loading Promote to King match data...");
+        setStatus("Loading basic match statistics...");
 
         try {
-          const data = await loadJSON(MATCH_LIST_URL);
-          renderAnalysis(data);
-          setStatus("Analysis complete.", "success");
+          basicData = await loadJSON(MATCH_LIST_URL);
+          currentRecords = buildBasicRecords(basicData);
+          renderAnalysis(currentRecords, { phase: "basic" });
+          setStatus(
+            "Basic statistics loaded. Select Detailed analyzis to load board counts.",
+            "success"
+          );
+          analyzeButton.disabled = false;
         } catch (error) {
           console.error(error);
           setStatus(
-            "Unable to load the Chess.com match data. Please try again.",
+            "Unable to load the Chess.com match list. Reload the page to try again.",
             "error"
           );
-        } finally {
-          analyzeButton.disabled = false;
-          analyzeButton.textContent = "Analyze matches";
         }
       }
 
-      analyzeButton.addEventListener("click", analyzeMatches);
+      async function runDetailedAnalysis() {
+        if (isDetailedAnalysisRunning) return;
+
+        if (!basicData || !currentRecords) {
+          await loadBasicStatistics();
+          if (!basicData || !currentRecords) return;
+        }
+
+        activeRunId += 1;
+        const runId = activeRunId;
+        cancelRequested = false;
+        isDetailedAnalysisRunning = true;
+        activeController = new AbortController();
+        analyzeButton.disabled = true;
+        analyzeButton.textContent = "Analyzing...";
+
+        // Start from clean basic records so a repeated analysis refreshes all details.
+        currentRecords = buildBasicRecords(basicData);
+        renderAnalysis(currentRecords, { phase: "loading", processed: 0, total: detailQueue(currentRecords).length });
+
+        try {
+          await loadDetailedRecords(currentRecords, runId);
+          throwIfCancelled(runId);
+          renderAnalysis(currentRecords, { phase: "complete" });
+
+          if (currentRecords.failed > 0) {
+            setStatus(
+              `Detailed analyzis complete with ${currentRecords.failed} unavailable match detail${currentRecords.failed === 1 ? "" : "s"}.`,
+              "warning"
+            );
+          } else {
+            setStatus("Detailed analyzis complete.", "success");
+          }
+        } catch (error) {
+          if (error instanceof CancelledError) {
+            renderAnalysis(currentRecords, { phase: "cancelled" });
+            setStatus(
+              `Detailed analyzis cancelled after ${currentRecords.processed} of ${currentRecords.requested} matches. Partial board information is retained.`,
+              "warning"
+            );
+          } else {
+            console.error(error);
+            renderAnalysis(currentRecords, { phase: "cancelled" });
+            setStatus(
+              "Detailed match data could not be fully loaded. Partial results are retained.",
+              "error"
+            );
+          }
+        } finally {
+          isDetailedAnalysisRunning = false;
+          activeController = null;
+          processingActions.style.display = "none";
+          analyzeButton.disabled = false;
+          analyzeButton.textContent = "Detailed analyzis";
+        }
+      }
+
+      function cancelDetailedAnalysis() {
+        if (!isDetailedAnalysisRunning) return;
+        cancelRequested = true;
+        cancelButton.disabled = true;
+        activeController?.abort();
+        setStatus(
+          `Cancelling after ${currentRecords?.processed || 0} of ${currentRecords?.requested || 0} matches...`,
+          "warning",
+          {
+            current: currentRecords?.processed || 0,
+            total: currentRecords?.requested || 0
+          },
+          true
+        );
+        cancelButton.disabled = true;
+      }
+
+      analyzeButton.addEventListener("click", runDetailedAnalysis);
+      cancelButton.addEventListener("click", cancelDetailedAnalysis);
+      loadBasicStatistics();
     })();
+
   </script>
-</div>
+  </main>
+</body>
+</html>
