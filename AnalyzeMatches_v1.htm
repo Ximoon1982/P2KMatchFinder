@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 9 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 15 -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -260,6 +260,130 @@
   #p2kUpcomingAnalyzer .p2k-locked .p2k-match-title { color: #83dc8d; }
   #p2kUpcomingAnalyzer .p2k-match-title:hover { text-decoration: underline; }
 
+  #p2kUpcomingAnalyzer .p2k-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-card-heading {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-toggle {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: 1px solid rgba(246, 183, 60, .52);
+    border-radius: 6px;
+    background: rgba(217, 141, 24, .14);
+    color: #ffd078;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: filter .15s ease, background .15s ease;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-toggle:hover {
+    filter: brightness(1.12);
+    background: rgba(217, 141, 24, .22);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-expanded-details {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 7px;
+    background: rgba(0, 0, 0, .15);
+    color: #d8d0c6;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-line {
+    margin: 4px 0;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-label {
+    color: #f0e4cf;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-rating-title {
+    margin-top: 10px;
+    color: #f0e4cf;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-table {
+    width: 100%;
+    margin-top: 5px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-table th,
+  #p2kUpcomingAnalyzer .p2k-detail-table td {
+    padding: 5px 7px;
+    border-bottom: 1px solid rgba(255, 255, 255, .09);
+    vertical-align: middle;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-table thead th {
+    color: #f0e4cf;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-table th:first-child,
+  #p2kUpcomingAnalyzer .p2k-detail-table td:first-child {
+    width: 34%;
+    text-align: left;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-table th:not(:first-child),
+  #p2kUpcomingAnalyzer .p2k-detail-table td:not(:first-child) {
+    width: 33%;
+    text-align: right;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-favorable {
+    color: #91e09a;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-unfavorable {
+    color: #ff8b79;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-neutral-value {
+    color: #e3ddd5;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-detail-separator {
+    margin: 11px 0;
+    border: 0;
+    border-top: 1px dashed rgba(255, 255, 255, .24);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-model-note {
+    margin-top: 8px;
+    color: #aaa198;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
   #p2kUpcomingAnalyzer .p2k-details {
     color: #c9c2b9;
     font-size: 13px;
@@ -321,6 +445,218 @@
     color: #ddd5ca;
   }
 
+
+
+  #p2kUpcomingAnalyzer .p2k-chart-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 12px 0 7px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-title {
+    color: #f0e4cf;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-expand,
+  #p2kUpcomingAnalyzer .p2k-chart-modal-close {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: 1px solid rgba(246, 183, 60, .52);
+    border-radius: 6px;
+    background: rgba(217, 141, 24, .14);
+    color: #ffd078;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: filter .15s ease, background .15s ease;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-expand:hover,
+  #p2kUpcomingAnalyzer .p2k-chart-modal-close:hover {
+    filter: brightness(1.12);
+    background: rgba(217, 141, 24, .22);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-wrap {
+    margin-top: 6px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, .09);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .03);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-scroll {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-svg {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 8px;
+    color: #c9c2b9;
+    font-size: 11px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-note {
+    margin-top: 6px;
+    color: #aaa198;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-title {
+    margin: 12px 0 7px;
+    color: #f0e4cf;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 7px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-panel {
+    min-width: 0;
+    padding: 9px;
+    border: 1px solid rgba(255, 255, 255, .09);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .025);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-team {
+    margin-bottom: 5px;
+    color: #f0e4cf;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-table th,
+  #p2kUpcomingAnalyzer .p2k-stats-table td {
+    padding: 4px 3px;
+    border-bottom: 1px solid rgba(255, 255, 255, .07);
+    text-align: right;
+    vertical-align: middle;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-table th:first-child,
+  #p2kUpcomingAnalyzer .p2k-stats-table td:first-child {
+    width: 37%;
+    text-align: left;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-table thead th {
+    color: #d9d1c8;
+    font-weight: 700;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-eligible {
+    color: #91e09a;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-stats-noneligible {
+    color: #d7cfc5;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal[hidden] {
+    display: none;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0, 0, 0, .78);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal-dialog {
+    width: min(1120px, 96vw);
+    max-height: 92vh;
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid rgba(255, 190, 60, .55);
+    border-radius: 12px;
+    background: linear-gradient(135deg, #27231f, #171513);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, .65);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal-title {
+    color: #f6b73c;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal .p2k-chart-wrap {
+    margin-top: 0;
+    padding: 14px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal .p2k-chart-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 6px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-chart-modal .p2k-chart-svg {
+    width: auto;
+    min-width: 100%;
+    max-width: none;
+  }
+
+
   @media (max-width: 620px) {
     #p2kUpcomingAnalyzer {
       padding: 16px;
@@ -332,6 +668,35 @@
 
     #p2kUpcomingAnalyzer .p2k-main-button {
       width: 100%;
+    }
+
+
+    #p2kUpcomingAnalyzer .p2k-card-header {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-detail-toggle {
+      align-self: flex-end;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-detail-table th,
+    #p2kUpcomingAnalyzer .p2k-detail-table td {
+      padding: 5px 4px;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-detail-table th:first-child,
+    #p2kUpcomingAnalyzer .p2k-detail-table td:first-child {
+      width: 38%;
+    }
+
+    #p2kUpcomingAnalyzer .p2k-detail-table th:not(:first-child),
+    #p2kUpcomingAnalyzer .p2k-detail-table td:not(:first-child) {
+      width: 31%;
     }
   }
   </style>
@@ -409,6 +774,16 @@
   </div>
 
   <div id="p2kResults" class="p2k-results"></div>
+
+  <div id="p2kChartModal" class="p2k-chart-modal" hidden aria-hidden="true">
+    <div class="p2k-chart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="p2kChartModalTitle">
+      <div class="p2k-chart-modal-header">
+        <div id="p2kChartModalTitle" class="p2k-chart-modal-title"></div>
+        <button id="p2kChartModalClose" class="p2k-chart-modal-close" type="button">Close</button>
+      </div>
+      <div id="p2kChartModalBody"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -430,6 +805,11 @@
   const progressTrack = document.getElementById("p2kProgressTrack");
   const progressBar = document.getElementById("p2kProgressBar");
   const resultsBox = document.getElementById("p2kResults");
+  const chartModal = document.getElementById("p2kChartModal");
+  const chartModalTitle = document.getElementById("p2kChartModalTitle");
+  const chartModalBody = document.getElementById("p2kChartModalBody");
+  const chartModalClose = document.getElementById("p2kChartModalClose");
+  let lastChartModalTrigger = null;
 
   /*
    * This is the in-memory cache. Once all @id URLs have been processed,
@@ -440,7 +820,8 @@
     processing: false,
     matches: [],
     failedCount: 0,
-    visibleCount: PAGE_SIZE
+    visibleCount: PAGE_SIZE,
+    expandedDetails: new Set()
   };
 
   class HttpError extends Error {
@@ -626,6 +1007,314 @@
     return Number.isFinite(maxPlayers) ? ratings.slice(0, maxPlayers) : ratings;
   }
 
+  function sumRatings(ratings) {
+    return ratings.reduce((sum, rating) => sum + rating, 0);
+  }
+
+  function stableHash(value) {
+    const stringValue = String(value || "");
+    let hash = 2166136261;
+
+    for (let index = 0; index < stringValue.length; index += 1) {
+      hash ^= stringValue.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0).toString(36);
+  }
+
+  function eloExpectedScore(rating1, rating2) {
+    return 1 / (1 + Math.pow(10, (rating2 - rating1) / 400));
+  }
+
+  function matchOutcomeProbabilities(boardExpectedScores) {
+    /*
+     * Elo gives an expected score E between 0 and 1. To preserve that
+     * expectation while allowing a game to score 0, 0.5 or 1, model each
+     * game as two independent half-point trials with probability E.
+     * Each board contains two games, hence four half-point trials.
+     */
+    let distribution = [1];
+
+    boardExpectedScores.forEach(expectedScore => {
+      for (let trial = 0; trial < 4; trial += 1) {
+        const next = new Array(distribution.length + 1).fill(0);
+
+        for (let units = 0; units < distribution.length; units += 1) {
+          next[units] += distribution[units] * (1 - expectedScore);
+          next[units + 1] += distribution[units] * expectedScore;
+        }
+
+        distribution = next;
+      }
+    });
+
+    const drawThresholdUnits = boardExpectedScores.length * 2;
+    let p2kWin = 0;
+    let draw = 0;
+    let opponentWin = 0;
+
+    const expectedHalfPointUnits = boardExpectedScores.reduce(
+      (sum, expectedScore) => sum + 4 * expectedScore,
+      0
+    );
+    let mostLikelyHalfPointUnits = 0;
+    let mostLikelyProbability = -1;
+
+    distribution.forEach((probability, halfPointUnits) => {
+      if (halfPointUnits > drawThresholdUnits) p2kWin += probability;
+      else if (halfPointUnits < drawThresholdUnits) opponentWin += probability;
+      else draw += probability;
+
+      const isMoreLikely = probability > mostLikelyProbability + Number.EPSILON;
+      const isEquivalentAndCloser =
+        Math.abs(probability - mostLikelyProbability) <= Number.EPSILON &&
+        Math.abs(halfPointUnits - expectedHalfPointUnits) <
+          Math.abs(mostLikelyHalfPointUnits - expectedHalfPointUnits);
+
+      if (isMoreLikely || isEquivalentAndCloser) {
+        mostLikelyProbability = probability;
+        mostLikelyHalfPointUnits = halfPointUnits;
+      }
+    });
+
+    return {
+      p2kWin,
+      opponentWin,
+      draw,
+      mostLikelyHalfPointUnits
+    };
+  }
+
+
+  function ratingBracketStart(rating, bracketSize = 50) {
+    return Math.floor(Number(rating) / bracketSize) * bracketSize;
+  }
+
+
+  function percentile(sortedRatings, percentileValue) {
+    if (!sortedRatings.length) return null;
+    if (sortedRatings.length === 1) return sortedRatings[0];
+
+    const position = (sortedRatings.length - 1) * percentileValue;
+    const lowerIndex = Math.floor(position);
+    const upperIndex = Math.ceil(position);
+    const fraction = position - lowerIndex;
+
+    if (lowerIndex === upperIndex) return sortedRatings[lowerIndex];
+    return sortedRatings[lowerIndex] +
+      (sortedRatings[upperIndex] - sortedRatings[lowerIndex]) * fraction;
+  }
+
+  function summarizeRatings(ratings, ratedRegistrationCount) {
+    const sorted = ratings.filter(Number.isFinite).slice().sort((a, b) => a - b);
+    const count = sorted.length;
+
+    if (count === 0) {
+      return {
+        count: 0,
+        share: ratedRegistrationCount > 0 ? 0 : null,
+        mean: null,
+        median: null,
+        standardDeviation: null,
+        q1: null,
+        q3: null,
+        minimum: null,
+        maximum: null
+      };
+    }
+
+    const mean = sorted.reduce((sum, rating) => sum + rating, 0) / count;
+    const variance = sorted.reduce((sum, rating) => sum + Math.pow(rating - mean, 2), 0) / count;
+
+    return {
+      count,
+      share: ratedRegistrationCount > 0 ? count / ratedRegistrationCount : null,
+      mean,
+      median: percentile(sorted, .5),
+      standardDeviation: Math.sqrt(variance),
+      q1: percentile(sorted, .25),
+      q3: percentile(sorted, .75),
+      minimum: sorted[0],
+      maximum: sorted[sorted.length - 1]
+    };
+  }
+
+  function buildRatingStatistics(registeredRatings, ratingEligibleRatings) {
+    const eligibleSetCounts = new Map();
+    ratingEligibleRatings.forEach(rating => {
+      eligibleSetCounts.set(rating, (eligibleSetCounts.get(rating) || 0) + 1);
+    });
+
+    const nonEligibleRatings = [];
+    registeredRatings.forEach(rating => {
+      const remaining = eligibleSetCounts.get(rating) || 0;
+      if (remaining > 0) {
+        eligibleSetCounts.set(rating, remaining - 1);
+      } else {
+        nonEligibleRatings.push(rating);
+      }
+    });
+
+    return {
+      eligible: summarizeRatings(ratingEligibleRatings, registeredRatings.length),
+      nonEligible: summarizeRatings(nonEligibleRatings, registeredRatings.length)
+    };
+  }
+
+  function buildRatingBracketHistogram(
+    registeredRatings1,
+    registeredRatings2,
+    eligibleRatings1,
+    eligibleRatings2,
+    bracketSize = 50
+  ) {
+    const combined = [...registeredRatings1, ...registeredRatings2].filter(Number.isFinite);
+    if (combined.length === 0) return [];
+
+    const minimum = ratingBracketStart(Math.min(...combined), bracketSize);
+    const maximum = ratingBracketStart(Math.max(...combined), bracketSize);
+    const binMap = new Map();
+
+    for (let start = minimum; start <= maximum; start += bracketSize) {
+      binMap.set(start, {
+        start,
+        end: start + bracketSize - 1,
+        team1Registered: 0,
+        team2Registered: 0,
+        team1Eligible: 0,
+        team2Eligible: 0
+      });
+    }
+
+    const addRatings = (ratings, field) => {
+      ratings.forEach(rating => {
+        if (!Number.isFinite(rating)) return;
+        const start = ratingBracketStart(rating, bracketSize);
+        if (!binMap.has(start)) {
+          binMap.set(start, {
+            start,
+            end: start + bracketSize - 1,
+            team1Registered: 0,
+            team2Registered: 0,
+            team1Eligible: 0,
+            team2Eligible: 0
+          });
+        }
+        binMap.get(start)[field] += 1;
+      });
+    };
+
+    addRatings(registeredRatings1, "team1Registered");
+    addRatings(registeredRatings2, "team2Registered");
+    addRatings(eligibleRatings1, "team1Eligible");
+    addRatings(eligibleRatings2, "team2Eligible");
+
+    return Array.from(binMap.values())
+      .sort((a, b) => a.start - b.start)
+      .map(bin => ({
+        ...bin,
+        team1NonEligible: Math.max(0, bin.team1Registered - bin.team1Eligible),
+        team2NonEligible: Math.max(0, bin.team2Registered - bin.team2Eligible)
+      }));
+  }
+
+  function detailedLineupAnalysis(p2kTeam, opponentTeam, bounds, maxPlayers) {
+    const p2kRegisteredRatings = ratedPlayers(p2kTeam).map(player => player.rating);
+    const opponentRegisteredRatings = ratedPlayers(opponentTeam).map(player => player.rating);
+    const p2kRatingEligibleRatings = ratedPlayers(p2kTeam, bounds).map(player => player.rating);
+    const opponentRatingEligibleRatings = ratedPlayers(opponentTeam, bounds).map(player => player.rating);
+
+    /*
+     * The eligible strength must represent the lineup that can actually be
+     * paired. Apply the rating window, cap by max_team_players when present,
+     * then use the same number of boards for both teams.
+     */
+    const configuredBoardLimit = Number.isFinite(maxPlayers)
+      ? maxPlayers
+      : Number.POSITIVE_INFINITY;
+    const boardCount = Math.min(
+      configuredBoardLimit,
+      p2kRatingEligibleRatings.length,
+      opponentRatingEligibleRatings.length
+    );
+    const p2kEligibleRatings = p2kRatingEligibleRatings.slice(0, boardCount);
+    const opponentEligibleRatings = opponentRatingEligibleRatings.slice(0, boardCount);
+    const p2kEligibleStrength = sumRatings(p2kEligibleRatings);
+    const opponentEligibleStrength = sumRatings(opponentEligibleRatings);
+
+    const boardAdvantages = {
+      overall: { team1: 0, team2: 0 },
+      under50: { team1: 0, team2: 0 },
+      from50To100: { team1: 0, team2: 0 },
+      over100: { team1: 0, team2: 0 }
+    };
+
+    const boardExpectedScores = [];
+
+    for (let board = 0; board < boardCount; board += 1) {
+      const rating1 = p2kEligibleRatings[board];
+      const rating2 = opponentEligibleRatings[board];
+      const difference = rating1 - rating2;
+      const absoluteDifference = Math.abs(difference);
+      const advantagedTeam = difference > 0 ? "team1" : difference < 0 ? "team2" : null;
+
+      if (advantagedTeam) {
+        boardAdvantages.overall[advantagedTeam] += 1;
+
+        if (absoluteDifference < 50) {
+          boardAdvantages.under50[advantagedTeam] += 1;
+        } else if (absoluteDifference < 100) {
+          boardAdvantages.from50To100[advantagedTeam] += 1;
+        } else {
+          boardAdvantages.over100[advantagedTeam] += 1;
+        }
+      }
+
+      boardExpectedScores.push(eloExpectedScore(rating1, rating2));
+    }
+
+    const totalAvailablePoints = boardCount * 2;
+    const outcomeProbabilities = matchOutcomeProbabilities(boardExpectedScores);
+    /*
+     * Use the most likely aggregate result from the half-point score
+     * distribution. This guarantees scores ending in .0 or .5 while keeping
+     * both teams' predicted totals equal to the points available in the match.
+     */
+    const predictedScoreTeam1 = outcomeProbabilities.mostLikelyHalfPointUnits / 2;
+    const predictedScoreTeam2 = totalAvailablePoints - predictedScoreTeam1;
+
+    return {
+      p2kRegisteredStrength: sumRatings(p2kRegisteredRatings),
+      opponentRegisteredStrength: sumRatings(opponentRegisteredRatings),
+      ratingBracketHistogram: buildRatingBracketHistogram(
+        p2kRegisteredRatings,
+        opponentRegisteredRatings,
+        p2kRatingEligibleRatings,
+        opponentRatingEligibleRatings,
+        50
+      ),
+      ratingStatistics: {
+        team1: buildRatingStatistics(p2kRegisteredRatings, p2kRatingEligibleRatings),
+        team2: buildRatingStatistics(opponentRegisteredRatings, opponentRatingEligibleRatings)
+      },
+      p2kRatingEligibleCount: p2kRatingEligibleRatings.length,
+      opponentRatingEligibleCount: opponentRatingEligibleRatings.length,
+      p2kEligibleCount: p2kEligibleRatings.length,
+      opponentEligibleCount: opponentEligibleRatings.length,
+      p2kEligibleStrength,
+      opponentEligibleStrength,
+      boardCount,
+      deltaStrength: p2kEligibleStrength - opponentEligibleStrength,
+      boardAdvantages,
+      predictedScoreTeam1,
+      predictedScoreTeam2,
+      p2kWinProbability: outcomeProbabilities.p2kWin,
+      opponentWinProbability: outcomeProbabilities.opponentWin,
+      drawProbability: outcomeProbabilities.draw
+    };
+  }
+
   function compareLineups(p2kRatings, opponentRatings) {
     /* Compare the same number of boards on both sides. */
     const boardCount = Math.min(p2kRatings.length, opponentRatings.length);
@@ -662,6 +1351,12 @@
     const p2kLineup = selectedLineupRatings(p2kTeam, maxPlayers, bounds);
     const opponentLineup = selectedLineupRatings(opponentTeam, maxPlayers, bounds);
     const lineupComparison = compareLineups(p2kLineup, opponentLineup);
+    const detailedAnalysis = detailedLineupAnalysis(
+      p2kTeam,
+      opponentTeam,
+      bounds,
+      maxPlayers
+    );
     const hasEnoughEligiblePlayers = minPlayers <= 0 || eligibleP2KPlayers >= minPlayers;
     const hasDefinedMaximumPlayers = Number.isFinite(maxPlayers);
     const hasReachedMaximumPlayers =
@@ -713,6 +1408,8 @@
       raw: match,
       name: String(match?.name || "Unnamed match"),
       url: String(match?.url || match?.["@id"] || "#"),
+      cacheKey: String(match?.["@id"] || match?.url || match?.name || Math.random()),
+      detailId: `p2kMatchDetails_${stableHash(match?.["@id"] || match?.url || match?.name)}`,
       startTimestamp: Number.isFinite(startTimestamp) ? startTimestamp : Number.POSITIVE_INFINITY,
       p2kTeam,
       opponentTeam,
@@ -722,6 +1419,7 @@
       minPlayers,
       maxPlayers,
       lineupComparison,
+      detailedAnalysis,
       hasEnoughEligiblePlayers,
       hasDefinedMaximumPlayers,
       hasReachedMaximumPlayers,
@@ -783,6 +1481,464 @@
     return filtered;
   }
 
+  function comparisonValueClass(value, otherValue, p2kColumn) {
+    if (value === otherValue) return "p2k-neutral-value";
+    const p2kFavored = p2kColumn ? value > otherValue : value < otherValue;
+    return p2kFavored ? "p2k-favorable" : "p2k-unfavorable";
+  }
+
+  function signedValueClass(value) {
+    if (value > 0) return "p2k-favorable";
+    if (value < 0) return "p2k-unfavorable";
+    return "p2k-neutral-value";
+  }
+
+  function formatDecimal(value, digits = 1) {
+    return Number(value).toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+  }
+
+  function formatInteger(value) {
+    return Number(value).toLocaleString(undefined, {
+      maximumFractionDigits: 0
+    });
+  }
+
+  function formatPercentage(probability) {
+    return `${formatDecimal(probability * 100, 1)}%`;
+  }
+
+
+  function escapeAttribute(value) {
+    return escapeHTML(value).replace(/`/g, '&#096;');
+  }
+
+
+  function formatStatistic(value, digits = 1) {
+    if (!Number.isFinite(value)) return "—";
+    return formatDecimal(value, digits);
+  }
+
+  function formatStatRange(first, second) {
+    if (!Number.isFinite(first) || !Number.isFinite(second)) return "—";
+    return `${formatInteger(Math.round(first))}–${formatInteger(Math.round(second))}`;
+  }
+
+  function renderRatingStatisticsHTML(statistics, p2kName, opponentName) {
+    if (!statistics?.team1 || !statistics?.team2) return "";
+
+    const panel = (teamName, data, accentClass) => {
+      const eligible = data.eligible;
+      const nonEligible = data.nonEligible;
+      const row = (label, eligibleValue, nonEligibleValue) => `
+        <tr>
+          <td>${escapeHTML(label)}</td>
+          <td>${eligibleValue}</td>
+          <td>${nonEligibleValue}</td>
+        </tr>`;
+
+      return `
+        <div class="p2k-stats-panel">
+          <div class="p2k-stats-team ${accentClass}">${escapeHTML(teamName)}</div>
+          <table class="p2k-stats-table" aria-label="Rating statistics for ${escapeAttribute(teamName)}">
+            <thead>
+              <tr>
+                <th scope="col">Statistic</th>
+                <th scope="col" class="p2k-stats-eligible">Eligible</th>
+                <th scope="col" class="p2k-stats-noneligible">Non-eligible</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${row("Players", formatInteger(eligible.count), formatInteger(nonEligible.count))}
+              ${row("Share", eligible.share === null ? "—" : formatPercentage(eligible.share), nonEligible.share === null ? "—" : formatPercentage(nonEligible.share))}
+              ${row("Mean", formatStatistic(eligible.mean), formatStatistic(nonEligible.mean))}
+              ${row("Median", formatStatistic(eligible.median), formatStatistic(nonEligible.median))}
+              ${row("Std. deviation", formatStatistic(eligible.standardDeviation), formatStatistic(nonEligible.standardDeviation))}
+              ${row("Q1–Q3", formatStatRange(eligible.q1, eligible.q3), formatStatRange(nonEligible.q1, nonEligible.q3))}
+              ${row("Min–max", formatStatRange(eligible.minimum, eligible.maximum), formatStatRange(nonEligible.minimum, nonEligible.maximum))}
+            </tbody>
+          </table>
+        </div>`;
+    };
+
+    return `
+      <div class="p2k-stats-title">Rating distribution statistics</div>
+      <div class="p2k-stats-grid">
+        ${panel(p2kName, statistics.team1, "p2k-favorable")}
+        ${panel(opponentName, statistics.team2, "p2k-unfavorable")}
+      </div>
+      <div class="p2k-chart-note">Eligibility in this chart and these statistics is based only on the match rating window. Lineup-size caps are applied separately to board simulation.</div>
+    `;
+  }
+
+  function renderRatingHistogramHTML(histogram, statistics, p2kName, opponentName, options = {}) {
+    if (!Array.isArray(histogram) || histogram.length === 0) {
+      return '<div class="p2k-chart-note">No rating distribution data available.</div>';
+    }
+
+    const large = options.large === true;
+    const matchKey = String(options.matchKey || "");
+    const chartWidth = large
+      ? Math.max(1120, 72 + histogram.length * 46)
+      : 760;
+    const leftPadding = large ? 58 : 46;
+    const rightPadding = large ? 20 : 12;
+    const topPadding = large ? 20 : 12;
+    const bottomPadding = large ? 92 : 82;
+    const chartHeight = large ? 380 : 230;
+    const chartBottom = topPadding + chartHeight;
+    const plotWidth = chartWidth - leftPadding - rightPadding;
+    const groupWidth = plotWidth / Math.max(1, histogram.length);
+    const baseGap = large ? 2.5 : 1.4;
+    const teamGap = large ? 5 : 3;
+    const availableForBars = Math.max(4, groupWidth - teamGap - baseGap * 2);
+    const barWidth = Math.max(1.5, Math.min(large ? 11 : 7, availableForBars / 4));
+    const allCounts = histogram.flatMap(bin => [
+      bin.team1Eligible,
+      bin.team1NonEligible,
+      bin.team2Eligible,
+      bin.team2NonEligible
+    ]);
+    const maximumCount = Math.max(1, ...allCounts);
+    const tickStep = Math.max(1, Math.ceil(maximumCount / 5));
+    const axisMaximum = Math.ceil(maximumCount / tickStep) * tickStep;
+    const hasTeam1NonEligible = histogram.some(bin => bin.team1NonEligible > 0);
+    const hasTeam2NonEligible = histogram.some(bin => bin.team2NonEligible > 0);
+
+    let grid = "";
+    for (let tick = 0; tick <= axisMaximum; tick += tickStep) {
+      const y = chartBottom - (tick / axisMaximum) * chartHeight;
+      grid += `
+        <line x1="${leftPadding}" y1="${y.toFixed(2)}" x2="${(chartWidth - rightPadding).toFixed(2)}" y2="${y.toFixed(2)}" stroke="rgba(255,255,255,.08)" stroke-width="1" />
+        <text x="${leftPadding - 7}" y="${(y + 4).toFixed(2)}" text-anchor="end" fill="#bfb7ae" font-size="${large ? 12 : 10}">${tick}</text>`;
+    }
+
+    const barRect = (x, count, fill, opacity, title) => {
+      if (count <= 0) return "";
+      const height = (count / axisMaximum) * chartHeight;
+      const y = chartBottom - height;
+      return `
+        <rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${height.toFixed(2)}" rx="1.5" fill="${fill}" fill-opacity="${opacity}">
+          <title>${escapeAttribute(title)}</title>
+        </rect>`;
+    };
+
+    const bars = histogram.map((bin, index) => {
+      const groupX = leftPadding + index * groupWidth;
+      const label = `${bin.start}-${bin.end}`;
+      const series = [
+        { count: bin.team1Eligible, fill: "#91e09a", opacity: 1, title: `${label} | ${p2kName} eligible: ${bin.team1Eligible}` },
+        { count: bin.team1NonEligible, fill: "#91e09a", opacity: .34, title: `${label} | ${p2kName} non-eligible: ${bin.team1NonEligible}` },
+        { separator: true },
+        { count: bin.team2Eligible, fill: "#ff8b79", opacity: 1, title: `${label} | ${opponentName} eligible: ${bin.team2Eligible}` },
+        { count: bin.team2NonEligible, fill: "#ff8b79", opacity: .34, title: `${label} | ${opponentName} non-eligible: ${bin.team2NonEligible}` }
+      ];
+      const visibleBars = series.filter(item => !item.separator && item.count > 0);
+      const team1Bars = visibleBars.filter(item => item.fill === "#91e09a");
+      const team2Bars = visibleBars.filter(item => item.fill === "#ff8b79");
+      const totalWidth = visibleBars.length * barWidth + Math.max(0, visibleBars.length - 1) * baseGap + (team1Bars.length && team2Bars.length ? teamGap : 0);
+      let currentX = groupX + (groupWidth - totalWidth) / 2;
+      let barsHTML = "";
+
+      team1Bars.forEach((item, itemIndex) => {
+        barsHTML += barRect(currentX, item.count, item.fill, item.opacity, item.title);
+        currentX += barWidth + baseGap;
+      });
+
+      if (team1Bars.length && team2Bars.length) {
+        const separatorX = currentX - baseGap / 2 + teamGap / 2;
+        barsHTML += `<line x1="${separatorX.toFixed(2)}" y1="${topPadding}" x2="${separatorX.toFixed(2)}" y2="${chartBottom}" stroke="rgba(255,255,255,.12)" stroke-width="1" />`;
+        currentX += teamGap;
+      }
+
+      team2Bars.forEach(item => {
+        barsHTML += barRect(currentX, item.count, item.fill, item.opacity, item.title);
+        currentX += barWidth + baseGap;
+      });
+
+      const labelX = groupX + groupWidth / 2;
+      const labelY = chartBottom + 10;
+
+      return `
+        <g>
+          ${barsHTML}
+          <text
+            x="${labelX.toFixed(2)}"
+            y="${labelY.toFixed(2)}"
+            text-anchor="end"
+            fill="#d7cfc5"
+            font-size="${large ? 10 : 8}"
+            transform="rotate(-90 ${labelX.toFixed(2)} ${labelY.toFixed(2)})"
+          >${label}</text>
+        </g>`;
+    }).join("");
+
+    const expandButton = !large && matchKey
+      ? `<button class="p2k-chart-expand" type="button" data-match-key="${escapeAttribute(matchKey)}">View larger</button>`
+      : "";
+
+    const legendItems = [
+      `<span><i class="p2k-chart-swatch" style="background:#91e09a"></i>${escapeHTML(p2kName)} eligible</span>`,
+      hasTeam1NonEligible
+        ? `<span><i class="p2k-chart-swatch" style="background:rgba(145,224,154,.34)"></i>${escapeHTML(p2kName)} non-eligible</span>`
+        : "",
+      `<span><i class="p2k-chart-swatch" style="background:#ff8b79"></i>${escapeHTML(opponentName)} eligible</span>`,
+      hasTeam2NonEligible
+        ? `<span><i class="p2k-chart-swatch" style="background:rgba(255,139,121,.34)"></i>${escapeHTML(opponentName)} non-eligible</span>`
+        : ""
+    ].filter(Boolean).join("");
+
+    return `
+      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Registered players by rating bracket (50 Elo)</div>${expandButton}</div>`}
+      <div class="p2k-chart-wrap">
+        <div class="p2k-chart-scroll">
+          <svg class="p2k-chart-svg" width="${chartWidth}" height="${chartBottom + bottomPadding}" viewBox="0 0 ${chartWidth} ${chartBottom + bottomPadding}" role="img" aria-label="Registered eligible and non-eligible players by rating bracket for ${escapeAttribute(p2kName)} and ${escapeAttribute(opponentName)}">
+            ${grid}
+            <line x1="${leftPadding}" y1="${chartBottom}" x2="${chartWidth - rightPadding}" y2="${chartBottom}" stroke="rgba(255,255,255,.22)" stroke-width="1" />
+            ${bars}
+          </svg>
+        </div>
+        <div class="p2k-chart-legend">${legendItems}</div>
+        <div class="p2k-chart-note">Hover a bar to see the exact number of rating-eligible or non-eligible registered players in that 50-point Elo bracket.</div>
+      </div>
+      ${renderRatingStatisticsHTML(statistics, p2kName, opponentName)}
+    `;
+  }
+
+  function openChartModal(matchKey, triggerButton = null) {
+    const match = state.matches.find(item => item.cacheKey === matchKey);
+    if (!match?.detailedAnalysis) return;
+
+    lastChartModalTrigger = triggerButton;
+    const p2kName = "Promote to King";
+    const opponentName = String(match.opponentTeam.name || "Other team");
+    chartModalTitle.textContent = `${match.name} — registered players by rating bracket`;
+    chartModalBody.innerHTML = renderRatingHistogramHTML(
+      match.detailedAnalysis.ratingBracketHistogram,
+      match.detailedAnalysis.ratingStatistics,
+      p2kName,
+      opponentName,
+      { large: true }
+    );
+    chartModal.hidden = false;
+    chartModal.setAttribute("aria-hidden", "false");
+    chartModalClose.focus();
+  }
+
+  function closeChartModal() {
+    if (chartModal.hidden) return;
+    chartModal.hidden = true;
+    chartModal.setAttribute("aria-hidden", "true");
+    chartModalBody.innerHTML = "";
+    lastChartModalTrigger?.focus();
+    lastChartModalTrigger = null;
+  }
+
+  function detailedInfoHTML(match) {
+    const details = match.detailedAnalysis;
+    const p2kName = "Promote to King";
+    const opponentName = String(match.opponentTeam.name || "Other team");
+
+    if (!details) {
+      return `
+        <div id="${escapeHTML(match.detailId)}" class="p2k-expanded-details">
+          Detailed lineup analysis is unavailable.
+        </div>
+      `;
+    }
+
+    const advantage = details.boardAdvantages;
+    const p2kRegisteredClass = comparisonValueClass(
+      match.p2kPlayerCount,
+      match.opponentPlayerCount,
+      true
+    );
+    const opponentRegisteredClass = comparisonValueClass(
+      match.opponentPlayerCount,
+      match.p2kPlayerCount,
+      false
+    );
+    const p2kRatingEligibleClass = comparisonValueClass(
+      details.p2kRatingEligibleCount,
+      details.opponentRatingEligibleCount,
+      true
+    );
+    const opponentRatingEligibleClass = comparisonValueClass(
+      details.opponentRatingEligibleCount,
+      details.p2kRatingEligibleCount,
+      false
+    );
+    const p2kStrengthClass = comparisonValueClass(
+      details.p2kRegisteredStrength,
+      details.opponentRegisteredStrength,
+      true
+    );
+    const opponentStrengthClass = comparisonValueClass(
+      details.opponentRegisteredStrength,
+      details.p2kRegisteredStrength,
+      false
+    );
+    const p2kEligibleStrengthClass = comparisonValueClass(
+      details.p2kEligibleStrength,
+      details.opponentEligibleStrength,
+      true
+    );
+    const opponentEligibleStrengthClass = comparisonValueClass(
+      details.opponentEligibleStrength,
+      details.p2kEligibleStrength,
+      false
+    );
+
+    const registrationTable = `
+      <table class="p2k-detail-table" aria-label="Team registration and strength comparison">
+        <thead>
+          <tr>
+            <th scope="col">Registration data</th>
+            <th scope="col">${escapeHTML(p2kName)}</th>
+            <th scope="col">${escapeHTML(opponentName)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Registered players</td>
+            <td><span class="${p2kRegisteredClass}">${formatInteger(match.p2kPlayerCount)}</span></td>
+            <td><span class="${opponentRegisteredClass}">${formatInteger(match.opponentPlayerCount)}</span></td>
+          </tr>
+          <tr>
+            <td>Rating-eligible players</td>
+            <td><span class="${p2kRatingEligibleClass}">${formatInteger(details.p2kRatingEligibleCount)}</span></td>
+            <td><span class="${opponentRatingEligibleClass}">${formatInteger(details.opponentRatingEligibleCount)}</span></td>
+          </tr>
+          <tr>
+            <td>Total strength</td>
+            <td><span class="${p2kStrengthClass}">${formatInteger(details.p2kRegisteredStrength)}</span></td>
+            <td><span class="${opponentStrengthClass}">${formatInteger(details.opponentRegisteredStrength)}</span></td>
+          </tr>
+          <tr>
+            <td>Eligible lineup strength (${details.boardCount} board${details.boardCount === 1 ? "" : "s"})</td>
+            <td><span class="${p2kEligibleStrengthClass}">${formatInteger(details.p2kEligibleStrength)}</span></td>
+            <td><span class="${opponentEligibleStrengthClass}">${formatInteger(details.opponentEligibleStrength)}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    const ratingHistogram = renderRatingHistogramHTML(
+      details.ratingBracketHistogram,
+      details.ratingStatistics,
+      p2kName,
+      opponentName,
+      { matchKey: match.cacheKey }
+    );
+
+    if (details.boardCount === 0) {
+      return `
+        <div id="${escapeHTML(match.detailId)}" class="p2k-expanded-details">
+          ${registrationTable}
+          <div class="p2k-detail-line">Detailed lineup analysis is unavailable because no eligible board can be paired.</div>
+          ${ratingHistogram}
+        </div>
+      `;
+    }
+
+    const ratingRow = (label, pair) => {
+      const p2kClass = comparisonValueClass(pair.team1, pair.team2, true);
+      const opponentClass = comparisonValueClass(pair.team2, pair.team1, false);
+      return `
+        <tr>
+          <td>${escapeHTML(label)}</td>
+          <td><span class="${p2kClass}">${formatInteger(pair.team1)}</span></td>
+          <td><span class="${opponentClass}">${formatInteger(pair.team2)}</span></td>
+        </tr>
+      `;
+    };
+
+    const p2kScoreClass = comparisonValueClass(
+      details.predictedScoreTeam1,
+      details.predictedScoreTeam2,
+      true
+    );
+    const opponentScoreClass = comparisonValueClass(
+      details.predictedScoreTeam2,
+      details.predictedScoreTeam1,
+      false
+    );
+    const p2kProbabilityClass = comparisonValueClass(
+      details.p2kWinProbability,
+      details.opponentWinProbability,
+      true
+    );
+    const opponentProbabilityClass = comparisonValueClass(
+      details.opponentWinProbability,
+      details.p2kWinProbability,
+      false
+    );
+
+    return `
+      <div id="${escapeHTML(match.detailId)}" class="p2k-expanded-details">
+        ${registrationTable}
+
+        <div class="p2k-detail-line">
+          <span class="p2k-detail-label">Delta strength over eligible boards (P2K - opponent):</span>
+          <span class="${signedValueClass(details.deltaStrength)}">${formatInteger(details.deltaStrength)}</span>
+        </div>
+
+        <div class="p2k-rating-title">Rating board advantage:</div>
+        <table class="p2k-detail-table" aria-label="Rating board advantage">
+          <thead>
+            <tr>
+              <th scope="col">Rating difference</th>
+              <th scope="col">${escapeHTML(p2kName)}</th>
+              <th scope="col">${escapeHTML(opponentName)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ratingRow("Overall", advantage.overall)}
+            ${ratingRow("]0..50[", advantage.under50)}
+            ${ratingRow("[50..100[", advantage.from50To100)}
+            ${ratingRow("100+", advantage.over100)}
+          </tbody>
+        </table>
+
+        <hr class="p2k-detail-separator">
+
+        <table class="p2k-detail-table" aria-label="Predicted match result">
+          <thead>
+            <tr>
+              <th scope="col">Prediction</th>
+              <th scope="col">${escapeHTML(p2kName)}</th>
+              <th scope="col">${escapeHTML(opponentName)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Predicted score</td>
+              <td><span class="${p2kScoreClass}">${formatDecimal(details.predictedScoreTeam1, 1)}</span></td>
+              <td><span class="${opponentScoreClass}">${formatDecimal(details.predictedScoreTeam2, 1)}</span></td>
+            </tr>
+            <tr>
+              <td>Match win probability</td>
+              <td><span class="${p2kProbabilityClass}">${formatPercentage(details.p2kWinProbability)}</span></td>
+              <td><span class="${opponentProbabilityClass}">${formatPercentage(details.opponentWinProbability)}</span></td>
+            </tr>
+            <tr>
+              <td>Match draw probability</td>
+              <td colspan="2"><span class="p2k-neutral-value">${formatPercentage(details.drawProbability)}</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="p2k-model-note">
+          Win probabilities are computed from the Elo expected score of every simulated pairing over two games per board, using half-point score units so draws are included. Predicted scores use the most likely aggregate half-point result and therefore always end in .0 or .5.
+        </div>
+
+        ${ratingHistogram}
+      </div>
+    `;
+  }
+
   function cardHTML(match) {
     /* Locked green overrides priority red, as requested. */
     const cardClass = match.locked
@@ -811,13 +1967,28 @@
       ? `<ul class="p2k-reasons">${match.priorityReasons.map(reason => `<li>${escapeHTML(reason)}</li>`).join("")}</ul>`
       : "";
 
+    const detailsExpanded = state.expandedDetails.has(match.cacheKey);
+
     return `
       <div class="${cardClass}">
-        ${badges}
-        <div>
-          <a class="p2k-match-title" href="${escapeHTML(match.url)}" target="_blank" rel="noopener noreferrer">
-            ${escapeHTML(match.name)}
-          </a>
+        <div class="p2k-card-header">
+          <div class="p2k-card-heading">
+            ${badges}
+            <div>
+              <a class="p2k-match-title" href="${escapeHTML(match.url)}" target="_blank" rel="noopener noreferrer">
+                ${escapeHTML(match.name)}
+              </a>
+            </div>
+          </div>
+          <button
+            class="p2k-detail-toggle"
+            type="button"
+            data-match-key="${escapeHTML(match.cacheKey)}"
+            aria-expanded="${detailsExpanded ? "true" : "false"}"
+            aria-controls="${escapeHTML(match.detailId)}"
+          >
+            ${detailsExpanded ? "Hide details" : "Show details"}
+          </button>
         </div>
         <div class="p2k-details">
           <div><span class="p2k-date">Start:</span> ${escapeHTML(formatStartDate(match.startTimestamp))}</div>
@@ -832,6 +2003,7 @@
           <div>${lineupText}</div>
         </div>
         ${reasons}
+        ${detailsExpanded ? detailedInfoHTML(match) : ""}
       </div>
     `;
   }
@@ -882,6 +2054,29 @@
       state.visibleCount = matches.length;
       renderResults();
     });
+
+    resultsBox.querySelectorAll(".p2k-detail-toggle").forEach(button => {
+      button.addEventListener("click", () => {
+        const matchKey = button.dataset.matchKey;
+        if (!matchKey) return;
+
+        if (state.expandedDetails.has(matchKey)) {
+          state.expandedDetails.delete(matchKey);
+        } else {
+          state.expandedDetails.add(matchKey);
+        }
+
+        renderResults();
+      });
+    });
+
+    resultsBox.querySelectorAll(".p2k-chart-expand").forEach(button => {
+      button.addEventListener("click", () => {
+        const matchKey = button.dataset.matchKey;
+        if (!matchKey) return;
+        openChartModal(matchKey, button);
+      });
+    });
   }
 
   async function analyzeUpcomingMatches() {
@@ -892,6 +2087,7 @@
     state.matches = [];
     state.failedCount = 0;
     state.visibleCount = PAGE_SIZE;
+    state.expandedDetails.clear();
     analyzeButton.disabled = true;
     analyzeButton.textContent = "Analyzing...";
     resultsBox.innerHTML = "";
@@ -949,6 +2145,16 @@
       analyzeButton.textContent = "Analyze upcoming matches";
     }
   }
+
+  chartModalClose.addEventListener("click", closeChartModal);
+
+  chartModal.addEventListener("click", event => {
+    if (event.target === chartModal) closeChartModal();
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !chartModal.hidden) closeChartModal();
+  });
 
   analyzeButton.addEventListener("click", analyzeUpcomingMatches);
 
