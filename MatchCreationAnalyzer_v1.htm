@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Match Creation Analyzer</title>
-  <!-- Version 14: correct secured threshold; show ongoing scores and secured outcomes; count secured wins and unavoidable losses -->
+  <!-- Version 17: exclude unavoidable-loss matches from estimated pending points -->
   <style>
 
     :root {
@@ -209,7 +209,7 @@
 
     #p2kCreationAnalyzer .p2k-scoring-points {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -560,6 +560,12 @@
       border: 1px solid rgba(255, 103, 103, .22);
     }
 
+    #p2kCreationAnalyzer .p2k-status-pill.p2k-secured-draw {
+      background: rgba(84, 132, 196, .20);
+      color: #c5dcff;
+      border: 1px solid rgba(119, 168, 234, .24);
+    }
+
     #p2kCreationAnalyzer .p2k-match-score {
       min-width: 86px;
       color: #f1d29a !important;
@@ -670,6 +676,57 @@
       border-radius: inherit;
       background: linear-gradient(90deg, #b96f0d, #f6b73c);
       transition: width .16s ease;
+    }
+
+
+    #p2kCreationAnalyzer .p2k-progress-stages {
+      display: none;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    #p2kCreationAnalyzer .p2k-progress-stage {
+      min-width: 0;
+      padding: 7px 5px;
+      border: 1px solid rgba(255, 190, 60, .14);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, .14);
+      color: #948c83;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1.25;
+      text-align: center;
+      transition:
+        border-color .18s ease,
+        background .18s ease,
+        color .18s ease;
+    }
+
+    #p2kCreationAnalyzer .p2k-progress-stage.is-active {
+      border-color: rgba(255, 190, 60, .55);
+      background: rgba(217, 140, 20, .19);
+      color: #ffdc91;
+    }
+
+    #p2kCreationAnalyzer .p2k-progress-stage.is-complete {
+      border-color: rgba(85, 187, 106, .35);
+      background: rgba(52, 145, 72, .15);
+      color: #bcebc5;
+    }
+
+    #p2kCreationAnalyzer .p2k-progress-stage-number {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 10px;
+    }
+
+    #p2kCreationAnalyzer .p2k-progress-stage-count {
+      display: block;
+      margin-top: 2px;
+      font-size: 9px;
+      font-weight: 700;
+      opacity: .9;
     }
 
     #p2kCreationAnalyzer .p2k-metric-subvalue {
@@ -921,6 +978,23 @@
     <div id="p2kCreationProgressTrack" class="p2k-progress-track" aria-hidden="true">
       <span id="p2kCreationProgressBar" class="p2k-progress-bar"></span>
     </div>
+    <div id="p2kCreationProgressStages" class="p2k-progress-stages" aria-label="Detailed analysis stages">
+      <div class="p2k-progress-stage" data-progress-stage="registration">
+        <span class="p2k-progress-stage-number">Step 1</span>
+        Registration
+        <span class="p2k-progress-stage-count">0 / 0</span>
+      </div>
+      <div class="p2k-progress-stage" data-progress-stage="last30">
+        <span class="p2k-progress-stage-number">Step 2</span>
+        Last 30 days
+        <span class="p2k-progress-stage-count">0 / 0</span>
+      </div>
+      <div class="p2k-progress-stage" data-progress-stage="remaining">
+        <span class="p2k-progress-stage-number">Step 3</span>
+        Remaining
+        <span class="p2k-progress-stage-count">0 / 0</span>
+      </div>
+    </div>
   </div>
   <div id="p2kCreationResults" class="p2k-results"></div>
   <script>
@@ -941,6 +1015,12 @@
       const statusText = document.getElementById("p2kCreationStatusText");
       const progressTrack = document.getElementById("p2kCreationProgressTrack");
       const progressBar = document.getElementById("p2kCreationProgressBar");
+      const progressStages = document.getElementById(
+        "p2kCreationProgressStages"
+      );
+      const progressStageElements = Array.from(
+        document.querySelectorAll("[data-progress-stage]")
+      );
       const processingActions = document.getElementById("p2kCreationProcessingActions");
       const cancelButton = document.getElementById("p2kCreationCancelButton");
       const resultsBox = document.getElementById("p2kCreationResults");
@@ -1008,6 +1088,63 @@
         });
       }
 
+      function progressStageForRecord(record, plan) {
+        if (plan.registration.includes(record)) return "registration";
+        if (plan.last30.includes(record)) return "last30";
+        return "remaining";
+      }
+
+      function progressStageLabel(stage) {
+        if (stage === "registration") {
+          return "Processing registration matches";
+        }
+        if (stage === "last30") {
+          return "Processing matches from the last 30 days";
+        }
+        return "Processing remaining matches";
+      }
+
+      function stageProgress(segment) {
+        const total = segment.length;
+        const processed = segment.filter(
+          record => record.detailState !== "pending"
+        ).length;
+        return { processed, total };
+      }
+
+      function updateProgressStages(plan, activeStage = null, visible = true) {
+        const stageSegments = {
+          registration: plan?.registration || [],
+          last30: plan?.last30 || [],
+          remaining: plan?.remaining || []
+        };
+
+        progressStages.style.display = visible ? "grid" : "none";
+
+        progressStageElements.forEach(element => {
+          const key = element.dataset.progressStage;
+          const progress = stageProgress(stageSegments[key]);
+          const countElement = element.querySelector(
+            ".p2k-progress-stage-count"
+          );
+
+          if (countElement) {
+            countElement.textContent =
+              `${progress.processed} / ${progress.total}`;
+          }
+
+          const complete =
+            progress.total === 0 ||
+            progress.processed >= progress.total;
+
+          element.classList.toggle("is-complete", complete);
+          element.classList.toggle(
+            "is-active",
+            activeStage === key && !complete
+          );
+        });
+      }
+
       function setStatus(message, type = "working", progress = null, cancellable = false) {
         statusBox.style.display = "block";
         statusBox.classList.toggle("p2k-error", type === "error");
@@ -1024,6 +1161,7 @@
         } else {
           progressTrack.style.display = "none";
           progressBar.style.width = "0%";
+          progressStages.style.display = "none";
         }
 
         processingActions.style.display = cancellable ? "flex" : "none";
@@ -1392,6 +1530,12 @@
           return "win";
         }
         if (
+          record.p2kScore !== null &&
+          record.p2kScore === record.boards
+        ) {
+          return "draw";
+        }
+        if (
           record.opponentScore !== null &&
           record.opponentScore > record.boards
         ) {
@@ -1497,12 +1641,17 @@
       }
 
       function detailQueuePlan(records) {
-        const recentDateKeys = new Set(dateRangeKeys(DAYS_CHART));
-        const recentInProgress = records.inProgress.filter(record =>
-          recentDateKeys.has(dateKeyFromTimestamp(record.startTime))
+        const chartDateKeys = new Set(dateRangeKeys(DAYS_CHART));
+        const startedRecords = [
+          ...records.inProgress,
+          ...records.finished
+        ];
+
+        const startedLast30Days = startedRecords.filter(record =>
+          chartDateKeys.has(dateKeyFromTimestamp(record.startTime))
         );
-        const remainingInProgress = records.inProgress.filter(record =>
-          !recentDateKeys.has(dateKeyFromTimestamp(record.startTime))
+        const olderOrUndatedInProgress = records.inProgress.filter(record =>
+          !chartDateKeys.has(dateKeyFromTimestamp(record.startTime))
         );
         const seenUrls = new Set();
 
@@ -1514,23 +1663,25 @@
         });
 
         /*
-         * Request order deliberately prioritizes the Match creation tab:
-         * 1. registration matches update registration board totals;
-         * 2. started matches in the 30-day window update the chart and averages;
-         * 3. older or undated in-progress matches complete opponent statistics.
+         * The detailed analysis is presented as three visible stages:
+         * 1. registration matches;
+         * 2. every match started during the latest 30 calendar days;
+         * 3. older or undated in-progress matches.
          */
         const registration = uniqueSegment(records.registered);
-        const recent = uniqueSegment([
-          ...recentInProgress,
-          ...records.finished
-        ]);
-        const remaining = uniqueSegment(remainingInProgress);
+        const last30 = uniqueSegment(startedLast30Days);
+        const remaining = uniqueSegment(olderOrUndatedInProgress);
 
         return {
           registration,
-          recent,
+          last30,
           remaining,
-          all: [...registration, ...recent, ...remaining]
+          recent30: last30,
+          all: [
+            ...registration,
+            ...last30,
+            ...remaining
+          ]
         };
       }
 
@@ -1565,7 +1716,7 @@
           if (allComplete) return;
 
           const registrationComplete = isComplete(plan.registration);
-          const recentComplete = registrationComplete && isComplete(plan.recent);
+          const recentComplete = registrationComplete && isComplete(plan.recent30);
 
           if (recentComplete && !records.recentCheckpointRendered) {
             records.registrationCheckpointRendered = true;
@@ -1607,9 +1758,11 @@
           const record = queue[index];
           const current = records.processed + 1;
           const total = records.requested;
+          const activeStage = progressStageForRecord(record, plan);
 
+          updateProgressStages(plan, activeStage, true);
           setStatus(
-            `Processing match ${current} of ${total}`,
+            `${progressStageLabel(activeStage)} — match ${current} of ${total}`,
             "working",
             { current: records.processed, total },
             true
@@ -1636,8 +1789,9 @@
           );
           records.processed = current;
 
+          updateProgressStages(plan, activeStage, true);
           setStatus(
-            `Processing match ${current} of ${total}`,
+            `${progressStageLabel(activeStage)} — match ${current} of ${total}`,
             "working",
             { current, total },
             true
@@ -1671,6 +1825,12 @@
         return number.toFixed(2).replace(/\.00$/, "");
       }
 
+      function formatIntegerPoints(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return "—";
+        return String(Math.round(number));
+      }
+
       function scoringStats(records, analysisState) {
         const finished = Array.isArray(records.finishedResults)
           ? records.finishedResults
@@ -1702,10 +1862,13 @@
         const paused = analysisState.phase === "paused";
         const showPendingValues = allOngoingRetrieved || paused;
 
-        let securedPoints = 0;
+        let securedWinPoints = 0;
+        let securedDrawPoints = 0;
         let securedWins = 0;
+        let securedDraws = 0;
         let unavoidableLosses = 0;
-        let nonSecuredBoards = 0;
+        let estimatedBoards = 0;
+        let excludedLossBoards = 0;
         let unknownScores = 0;
 
         records.inProgress.forEach(record => {
@@ -1713,11 +1876,16 @@
 
           const outcome = securedOutcome(record);
           if (outcome === "win") {
-            securedPoints += 5 * record.boards;
+            securedWinPoints += 5 * record.boards;
             securedWins += 1;
+          } else if (outcome === "draw") {
+            securedDrawPoints += 2;
+            securedDraws += 1;
+          } else if (outcome === "loss") {
+            unavoidableLosses += 1;
+            excludedLossBoards += record.boards;
           } else {
-            nonSecuredBoards += record.boards;
-            if (outcome === "loss") unavoidableLosses += 1;
+            estimatedBoards += record.boards;
             if (
               record.p2kScore === null ||
               record.opponentScore === null
@@ -1726,6 +1894,12 @@
             }
           }
         });
+
+        const securedPoints =
+          securedWinPoints + securedDrawPoints;
+        const estimatedPendingPoints = Math.round(
+          securedPoints + (grossPerBoard * estimatedBoards)
+        );
 
         return {
           totalFinished,
@@ -1739,13 +1913,15 @@
           failedDetails,
           showPendingValues,
           securedPoints,
+          securedWinPoints,
+          securedDrawPoints,
           securedWins,
+          securedDraws,
           unavoidableLosses,
-          nonSecuredBoards,
+          estimatedBoards,
+          excludedLossBoards,
           unknownScores,
-          projectedGrossPending: grossPerBoard * boardSummary.total,
-          finePendingPoints:
-            securedPoints + (grossPerBoard * nonSecuredBoards)
+          estimatedPendingPoints
         };
       }
 
@@ -1755,20 +1931,13 @@
           ? `${stats.totalFinished} finished daily matches; ${stats.resultCounts.unknown} unclassified`
           : `${stats.totalFinished} finished daily matches`;
 
-        const pendingQualifier = !stats.showPendingValues
-          ? "Available after ongoing match details are retrieved"
-          : stats.pendingDetails > 0 || stats.failedDetails > 0 ||
-            stats.boardSummary.unknown > 0
-            ? `Partial: ${stats.boardSummary.total} known boards; ${stats.pendingDetails} pending, ${stats.failedDetails} failed`
-            : `${stats.boardSummary.total} ongoing boards`;
-
         const securedSubvalue = !stats.showPendingValues
           ? "Available after ongoing match details are retrieved"
-          : `${stats.securedWins} secured win${stats.securedWins === 1 ? "" : "s"}`;
+          : `${stats.securedWinPoints} win points + ${stats.securedDrawPoints} draw points`;
 
-        const fineSubvalue = !stats.showPendingValues
+        const estimatedSubvalue = !stats.showPendingValues
           ? "Available after ongoing match details are retrieved"
-          : `Secured total plus estimate on ${stats.nonSecuredBoards} other boards`;
+          : `Rounded secured total plus estimate on ${stats.estimatedBoards} other boards; ${stats.excludedLossBoards} unavoidable-loss boards excluded`;
 
         return `
           <div class="p2k-scoring-section">
@@ -1806,6 +1975,15 @@
               )}
               ${renderMetric(
                 stats.showPendingValues
+                  ? stats.securedDraws
+                  : "—",
+                "Secured draws",
+                stats.showPendingValues
+                  ? "P2K score equals the board count"
+                  : "Available after ongoing match details are retrieved"
+              )}
+              ${renderMetric(
+                stats.showPendingValues
                   ? stats.unavoidableLosses
                   : "—",
                 "Unavoidable losses",
@@ -1826,32 +2004,28 @@
               )}
               ${renderMetric(
                 stats.showPendingValues
-                  ? formatPoints(stats.projectedGrossPending)
-                  : "—",
-                "Projected gross pending points",
-                pendingQualifier
-              )}
-              ${renderMetric(
-                stats.showPendingValues
-                  ? formatPoints(stats.securedPoints)
+                  ? formatIntegerPoints(stats.securedPoints)
                   : "—",
                 "Secured points",
                 securedSubvalue
               )}
               ${renderMetric(
                 stats.showPendingValues
-                  ? formatPoints(stats.finePendingPoints)
+                  ? formatIntegerPoints(stats.estimatedPendingPoints)
                   : "—",
-                "Fine pending points",
-                fineSubvalue
+                "Estimated pending points",
+                estimatedSubvalue
               )}
             </div>
             <div class="p2k-scoring-note">
-              <strong>Secured-match rule:</strong>
-              a match qualifies only when Promote to King’s current score is
-              strictly greater than its board count. Matches that do not
-              qualify use the gross derived points-per-board estimate in the
-              fine pending calculation.
+              <strong>Secured-points rules:</strong>
+              a secured win is worth 5 points per board when Promote to King’s
+              score is greater than the board count. A secured draw is worth
+              2 points when Promote to King’s score equals the board count.
+              Other ongoing boards use the gross derived points-per-board
+              estimate, except matches already flagged as unavoidable losses,
+              which contribute no estimated points. The final estimated
+              pending total is rounded to the nearest integer.
               ${stats.unknownScores > 0 && stats.showPendingValues
                 ? `<br>${stats.unknownScores} loaded ongoing match${stats.unknownScores === 1 ? "" : "es"} had an incomplete current score and were treated as non-secured.`
                 : ""}
@@ -1980,9 +2154,11 @@
         const outcome = isRegistered ? null : securedOutcome(record);
         const outcomeBadge = outcome === "win"
           ? '<span class="p2k-status-pill p2k-secured-win">Secured win</span>'
-          : outcome === "loss"
-            ? '<span class="p2k-status-pill p2k-secured-loss">Unavoidable loss</span>'
-            : '<span class="p2k-status-pill p2k-boards">Not secured</span>';
+          : outcome === "draw"
+            ? '<span class="p2k-status-pill p2k-secured-draw">Secured draw</span>'
+            : outcome === "loss"
+              ? '<span class="p2k-status-pill p2k-secured-loss">Unavoidable loss</span>'
+              : '<span class="p2k-status-pill p2k-boards">Not secured</span>';
 
         return `
           <div
@@ -2899,8 +3075,17 @@
           : detailQueue(currentRecords).length;
         const initialProcessed = resume ? currentRecords.processed : 0;
 
+        const initialPlan = detailQueuePlan(currentRecords);
+        const firstPendingRecord = initialPlan.all.find(
+          record => record.detailState === "pending"
+        );
+        const initialStage = firstPendingRecord
+          ? progressStageForRecord(firstPendingRecord, initialPlan)
+          : "remaining";
+
+        updateProgressStages(initialPlan, initialStage, true);
         setStatus(
-          `Processing match ${Math.min(initialProcessed + 1, initialTotal)} of ${initialTotal}`,
+          `${progressStageLabel(initialStage)} — match ${Math.min(initialProcessed + 1, initialTotal)} of ${initialTotal}`,
           "working",
           { current: initialProcessed, total: initialTotal },
           true
@@ -2909,6 +3094,11 @@
         try {
           await loadDetailedRecords(currentRecords, runId, resume);
           throwIfCancelled(runId);
+          updateProgressStages(
+            detailQueuePlan(currentRecords),
+            null,
+            true
+          );
           renderAnalysis(currentRecords, { phase: "complete" });
 
           if (currentRecords.failed > 0) {
@@ -2922,6 +3112,11 @@
         } catch (error) {
           if (error instanceof CancelledError) {
             isDetailedAnalysisPaused = true;
+            updateProgressStages(
+              detailQueuePlan(currentRecords),
+              null,
+              true
+            );
             renderAnalysis(currentRecords, { phase: "paused" });
             setStatus(
               `Detailed analyzis paused after ${currentRecords.processed} of ${currentRecords.requested} matches. Loaded data is retained; select Resume analyzis to continue.`,
@@ -2934,6 +3129,11 @@
           } else {
             console.error(error);
             isDetailedAnalysisPaused = true;
+            updateProgressStages(
+              detailQueuePlan(currentRecords),
+              null,
+              true
+            );
             renderAnalysis(currentRecords, { phase: "paused" });
             setStatus(
               "Detailed match data could not be fully loaded. Partial results are retained; select Resume analyzis to retry the pending matches.",
