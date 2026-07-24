@@ -1,0 +1,1496 @@
+<!-- Promote to King Match Creation Analyzer - Version 5 -->
+<div id="p2kCreationAnalyzer">
+  <style>
+    #p2kCreationAnalyzer,
+    #p2kCreationAnalyzer * {
+      box-sizing: border-box;
+    }
+
+    #p2kCreationAnalyzer {
+      width: min(100%, 760px);
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid rgba(255, 190, 60, .45);
+      border-radius: 14px;
+      background-color: #171513;
+      background-image: linear-gradient(135deg, #27231f, #171513);
+      color: #eee;
+      font-family: Arial, Helvetica, sans-serif;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+    }
+
+    #p2kCreationAnalyzer .p2k-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    #p2kCreationAnalyzer h2 {
+      margin: 4px 0 0;
+      color: #f6b73c;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+
+    #p2kCreationAnalyzer .p2k-logo {
+      width: 58px;
+      height: 58px;
+      flex: 0 0 58px;
+      object-fit: cover;
+      border: 2px solid rgba(246, 183, 60, .75);
+      border-radius: 12px;
+      background: #111;
+      box-shadow: 0 5px 14px rgba(0, 0, 0, .4);
+    }
+
+    #p2kCreationAnalyzer .p2k-main-button {
+      padding: 10px 22px;
+      border: 0;
+      border-radius: 7px;
+      background: #d98d18;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: filter .15s ease, opacity .15s ease;
+    }
+
+    #p2kCreationAnalyzer .p2k-main-button:hover:not(:disabled) {
+      filter: brightness(1.12);
+    }
+
+    #p2kCreationAnalyzer .p2k-main-button:disabled {
+      cursor: wait;
+      opacity: .6;
+    }
+
+    #p2kCreationAnalyzer .p2k-status {
+      display: none;
+      margin-top: 16px;
+      padding: 11px 12px;
+      border-radius: 7px;
+      background: rgba(255, 183, 60, .12);
+      color: #ffd078;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    #p2kCreationAnalyzer .p2k-status.p2k-error {
+      background: rgba(217, 74, 58, .13);
+      color: #ff8b79;
+    }
+
+    #p2kCreationAnalyzer .p2k-status.p2k-success {
+      background: rgba(79, 168, 91, .13);
+      color: #91e09a;
+    }
+
+    #p2kCreationAnalyzer .p2k-results {
+      display: none;
+      margin-top: 16px;
+    }
+
+    #p2kCreationAnalyzer .p2k-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    #p2kCreationAnalyzer .p2k-metric {
+      min-width: 0;
+      padding: 13px 10px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .035);
+      text-align: center;
+    }
+
+    #p2kCreationAnalyzer .p2k-metric-value {
+      color: #ffd078;
+      font-size: 25px;
+      font-weight: 800;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #p2kCreationAnalyzer .p2k-metric-label {
+      margin-top: 5px;
+      color: #c9c2b9;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    #p2kCreationAnalyzer .p2k-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding: 5px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 9px;
+      background: rgba(0, 0, 0, .14);
+    }
+
+    #p2kCreationAnalyzer .p2k-tab-button {
+      flex: 1 1 0;
+      min-height: 39px;
+      padding: 8px 12px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: #c9c2b9;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+
+    #p2kCreationAnalyzer .p2k-tab-button:hover {
+      background: rgba(255, 255, 255, .045);
+      color: #f0e4cf;
+    }
+
+    #p2kCreationAnalyzer .p2k-tab-button[aria-selected="true"] {
+      border-color: rgba(246, 183, 60, .65);
+      background: rgba(217, 141, 24, .17);
+      color: #ffd078;
+    }
+
+    #p2kCreationAnalyzer .p2k-tab-panel[hidden] {
+      display: none !important;
+    }
+
+    #p2kCreationAnalyzer .p2k-section {
+      margin-top: 15px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .025);
+    }
+
+    #p2kCreationAnalyzer .p2k-section-title {
+      margin: 0 0 9px;
+      color: #f0e4cf;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    #p2kCreationAnalyzer .p2k-table-wrap {
+      overflow-x: auto;
+    }
+
+    #p2kCreationAnalyzer table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #p2kCreationAnalyzer th,
+    #p2kCreationAnalyzer td {
+      padding: 7px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, .075);
+      text-align: left;
+    }
+
+    #p2kCreationAnalyzer th {
+      color: #d9d1c8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    #p2kCreationAnalyzer th:last-child,
+    #p2kCreationAnalyzer td:last-child {
+      width: 120px;
+      text-align: right;
+    }
+
+    #p2kCreationAnalyzer tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    #p2kCreationAnalyzer .p2k-count {
+      color: #ffd078;
+      font-weight: 800;
+    }
+
+    #p2kCreationAnalyzer .p2k-today td {
+      background: rgba(217, 141, 24, .09);
+    }
+
+    #p2kCreationAnalyzer .p2k-no-date {
+      color: #ff9a82;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-wrap {
+      padding: 8px;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 7px;
+      background: rgba(0, 0, 0, .10);
+    }
+
+    #p2kCreationAnalyzer .p2k-chart {
+      display: block;
+      width: 100%;
+      min-width: 650px;
+      height: auto;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 17px;
+      margin-top: 9px;
+      color: #c9c2b9;
+      font-size: 11px;
+    }
+
+    #p2kCreationAnalyzer .p2k-chart-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #p2kCreationAnalyzer .p2k-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      background: #d98d18;
+    }
+
+    #p2kCreationAnalyzer .p2k-average-line {
+      width: 18px;
+      height: 0;
+      border-top: 2px dashed #91e09a;
+    }
+
+    #p2kCreationAnalyzer .p2k-note {
+      margin-top: 7px;
+      color: #c5bdb3;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    /* Explicit colours prevent forum table styles from turning dates black. */
+    #p2kCreationAnalyzer td {
+      color: #f2ece4 !important;
+    }
+
+    #p2kCreationAnalyzer .p2k-date {
+      color: #fff3df !important;
+      font-weight: 700;
+    }
+
+    #p2kCreationAnalyzer .p2k-section-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 9px;
+    }
+
+    #p2kCreationAnalyzer .p2k-section-title-row .p2k-section-title {
+      margin: 0;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 7px;
+      background: rgba(0, 0, 0, .12);
+    }
+
+    #p2kCreationAnalyzer .p2k-filter-group,
+    #p2kCreationAnalyzer .p2k-opponent-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-search-group {
+      display: flex;
+      flex: 1 1 220px;
+      align-items: center;
+      gap: 7px;
+      min-width: 180px;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-search {
+      width: 100%;
+      min-width: 0;
+      height: 32px;
+      padding: 6px 10px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 6px;
+      outline: none;
+      background: rgba(0, 0, 0, .22);
+      color: #fff3df !important;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-search::placeholder {
+      color: #9e968d;
+      opacity: 1;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-search:focus {
+      border-color: rgba(246, 183, 60, .82);
+      box-shadow: 0 0 0 2px rgba(217, 141, 24, .16);
+    }
+
+    #p2kCreationAnalyzer .p2k-filter-label {
+      margin-right: 2px;
+      color: #f0e4cf;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    #p2kCreationAnalyzer .p2k-radio-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 28px;
+      padding: 4px 8px;
+      border: 1px solid rgba(255, 255, 255, .11);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .035);
+      color: #e9e1d8;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #p2kCreationAnalyzer .p2k-radio-label:has(input:checked) {
+      border-color: rgba(246, 183, 60, .75);
+      background: rgba(217, 141, 24, .16);
+      color: #ffd078;
+    }
+
+    #p2kCreationAnalyzer .p2k-radio-label input {
+      margin: 0;
+      accent-color: #d98d18;
+    }
+
+    #p2kCreationAnalyzer .p2k-small-button {
+      padding: 6px 9px;
+      border: 1px solid rgba(246, 183, 60, .45);
+      border-radius: 6px;
+      background: rgba(217, 141, 24, .10);
+      color: #ffd078;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #p2kCreationAnalyzer .p2k-small-button:hover {
+      background: rgba(217, 141, 24, .20);
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-summary {
+      margin: 0 0 9px;
+      color: #c9c2b9;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-card {
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-left: 4px solid #d98d18;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .025);
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-card[hidden],
+    #p2kCreationAnalyzer .p2k-opponent-match[hidden] {
+      display: none !important;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-card > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 46px;
+      padding: 9px 10px;
+      list-style: none;
+      color: #f4ede5 !important;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-card > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-card[open] > summary {
+      background: rgba(217, 141, 24, .08);
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: #fff3df !important;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-counts {
+      display: inline-flex;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 5px;
+    }
+
+    #p2kCreationAnalyzer .p2k-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    #p2kCreationAnalyzer .p2k-status-pill.p2k-registered {
+      background: rgba(217, 141, 24, .17);
+      color: #ffd078;
+    }
+
+    #p2kCreationAnalyzer .p2k-status-pill.p2k-progress {
+      background: rgba(79, 168, 91, .16);
+      color: #a8e8b0;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-body {
+      padding: 9px 10px 10px;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-club-link {
+      display: inline-block;
+      margin-bottom: 8px;
+      color: #ffd078 !important;
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-club-link:hover,
+    #p2kCreationAnalyzer .p2k-match-name:hover {
+      text-decoration: underline;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-matches {
+      display: grid;
+      gap: 6px;
+    }
+
+    #p2kCreationAnalyzer .p2k-opponent-match {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, .11);
+    }
+
+    #p2kCreationAnalyzer .p2k-match-name {
+      min-width: 0;
+      color: #f4ede5 !important;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+      text-decoration: none;
+    }
+
+    #p2kCreationAnalyzer .p2k-match-date {
+      color: #fff3df !important;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    #p2kCreationAnalyzer .p2k-empty-opponents {
+      padding: 12px;
+      color: #c9c2b9;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 680px) {
+      #p2kCreationAnalyzer {
+        padding: 16px;
+      }
+
+      #p2kCreationAnalyzer .p2k-main-button {
+        width: 100%;
+      }
+
+      #p2kCreationAnalyzer .p2k-tabs {
+        flex-direction: column;
+      }
+
+      #p2kCreationAnalyzer .p2k-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #p2kCreationAnalyzer .p2k-opponent-toolbar,
+      #p2kCreationAnalyzer .p2k-section-title-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      #p2kCreationAnalyzer .p2k-opponent-search-group {
+        flex-basis: auto;
+        width: 100%;
+      }
+
+      #p2kCreationAnalyzer .p2k-opponent-card > summary {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      #p2kCreationAnalyzer .p2k-opponent-counts {
+        justify-content: flex-start;
+      }
+
+      #p2kCreationAnalyzer .p2k-opponent-match {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      #p2kCreationAnalyzer .p2k-match-date {
+        grid-column: 2;
+        white-space: normal;
+      }
+    }
+  </style>
+
+  <div class="p2k-header">
+    <h2>Promote to King Match Creation Analyzer</h2>
+    <img
+      class="p2k-logo"
+      src="https://ximoon1982.github.io/P2KMatchFinder/p2k-logo.jpg"
+      alt="Promote to King club logo"
+      title="Promote to King"
+    >
+  </div>
+
+  <button id="p2kCreationAnalyzeButton" class="p2k-main-button" type="button">
+    Analyze matches
+  </button>
+
+  <div id="p2kCreationStatus" class="p2k-status" aria-live="polite"></div>
+  <div id="p2kCreationResults" class="p2k-results"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const MATCH_LIST_URL =
+        "https://api.chess.com/pub/club/promote-to-king/matches";
+      const REQUEST_ATTEMPTS = 3;
+      const JSONP_TIMEOUT_MS = 20000;
+      const DAYS_CHART = 30;
+
+      const root = document.getElementById("p2kCreationAnalyzer");
+      const analyzeButton =
+        document.getElementById("p2kCreationAnalyzeButton");
+      const statusBox = document.getElementById("p2kCreationStatus");
+      const resultsBox = document.getElementById("p2kCreationResults");
+
+      class HttpError extends Error {
+        constructor(status, url) {
+          super(`HTTP ${status} while loading ${url}`);
+          this.name = "HttpError";
+          this.status = status;
+          this.url = url;
+        }
+      }
+
+      function escapeHTML(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function delay(milliseconds) {
+        return new Promise(resolve =>
+          window.setTimeout(resolve, milliseconds)
+        );
+      }
+
+      function setStatus(message, type = "working") {
+        statusBox.style.display = "block";
+        statusBox.classList.toggle("p2k-error", type === "error");
+        statusBox.classList.toggle("p2k-success", type === "success");
+        statusBox.textContent = message;
+      }
+
+      function appendCallbackParameter(url, callbackName) {
+        return `${url}${url.includes("?") ? "&" : "?"}callback=${encodeURIComponent(callbackName)}`;
+      }
+
+      function loadJSONP(url) {
+        return new Promise((resolve, reject) => {
+          const callbackName =
+            `p2kCreationJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          const script = document.createElement("script");
+          let timer = null;
+
+          const cleanup = () => {
+            if (timer !== null) window.clearTimeout(timer);
+            script.remove();
+            try {
+              delete window[callbackName];
+            } catch (_) {
+              window[callbackName] = undefined;
+            }
+          };
+
+          window[callbackName] = data => {
+            cleanup();
+            resolve(data);
+          };
+
+          script.onerror = () => {
+            cleanup();
+            reject(new Error(`JSONP request failed for ${url}`));
+          };
+
+          timer = window.setTimeout(() => {
+            cleanup();
+            reject(new Error(`JSONP request timed out for ${url}`));
+          }, JSONP_TIMEOUT_MS);
+
+          script.src = appendCallbackParameter(url, callbackName);
+          script.async = true;
+          document.head.appendChild(script);
+        });
+      }
+
+      async function requestJSONOnce(url) {
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store",
+            headers: { Accept: "application/json" }
+          });
+
+          if (!response.ok) {
+            throw new HttpError(response.status, url);
+          }
+
+          return await response.json();
+        } catch (error) {
+          if (error instanceof HttpError) throw error;
+          return await loadJSONP(url);
+        }
+      }
+
+      async function loadJSON(url) {
+        let lastError = null;
+
+        for (
+          let attempt = 1;
+          attempt <= REQUEST_ATTEMPTS;
+          attempt += 1
+        ) {
+          try {
+            return await requestJSONOnce(url);
+          } catch (error) {
+            lastError = error;
+            if (error instanceof HttpError && error.status === 404) {
+              throw error;
+            }
+            if (attempt < REQUEST_ATTEMPTS) {
+              await delay(attempt * 800);
+            }
+          }
+        }
+
+        throw lastError || new Error(`Unable to load ${url}`);
+      }
+
+      function utcToday() {
+        const now = new Date();
+        return new Date(Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate()
+        ));
+      }
+
+      function dateKeyFromDate(date) {
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(date.getUTCDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function dateKeyFromTimestamp(timestamp) {
+        if (
+          timestamp === null ||
+          timestamp === undefined ||
+          timestamp === ""
+        ) {
+          return null;
+        }
+
+        const seconds = Number(timestamp);
+        if (!Number.isFinite(seconds) || seconds <= 0) return null;
+
+        const date = new Date(seconds * 1000);
+        if (!Number.isFinite(date.getTime())) return null;
+
+        return dateKeyFromDate(date);
+      }
+
+      function dateRangeKeys(numberOfDays) {
+        const today = utcToday();
+        const keys = [];
+
+        for (let offset = numberOfDays - 1; offset >= 0; offset -= 1) {
+          const date = new Date(today);
+          date.setUTCDate(today.getUTCDate() - offset);
+          keys.push(dateKeyFromDate(date));
+        }
+
+        return keys;
+      }
+
+      function dateFromKey(key) {
+        return new Date(`${key}T00:00:00Z`);
+      }
+
+      function formatDate(key) {
+        return new Intl.DateTimeFormat("en-GB", {
+          timeZone: "UTC",
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }).format(dateFromKey(key));
+      }
+
+      function formatShortDate(key) {
+        return new Intl.DateTimeFormat("en-GB", {
+          timeZone: "UTC",
+          day: "2-digit",
+          month: "short"
+        }).format(dateFromKey(key));
+      }
+
+      function countMatchesByDate(matches, allowedKeys = null) {
+        const counts = new Map();
+
+        if (allowedKeys) {
+          allowedKeys.forEach(key => counts.set(key, 0));
+        }
+
+        matches.forEach(match => {
+          const key = dateKeyFromTimestamp(match?.start_time);
+          if (!key) return;
+          if (allowedKeys && !counts.has(key)) return;
+          counts.set(key, (counts.get(key) || 0) + 1);
+        });
+
+        return counts;
+      }
+
+      function renderMetric(value, label) {
+        return `
+          <div class="p2k-metric">
+            <div class="p2k-metric-value">${escapeHTML(value)}</div>
+            <div class="p2k-metric-label">${escapeHTML(label)}</div>
+          </div>
+        `;
+      }
+
+      function renderRegistrationTable(registered) {
+        const counts = new Map();
+        let noStartDateCount = 0;
+
+        registered.forEach(match => {
+          const key = dateKeyFromTimestamp(match?.start_time);
+          if (!key) {
+            noStartDateCount += 1;
+            return;
+          }
+          counts.set(key, (counts.get(key) || 0) + 1);
+        });
+
+        const rows = [...counts.entries()]
+          .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+          .map(([date, count]) => `
+            <tr>
+              <td class="p2k-date">${escapeHTML(formatDate(date))}</td>
+              <td class="p2k-count">${count}</td>
+            </tr>
+          `);
+
+        if (noStartDateCount > 0) {
+          rows.push(`
+            <tr>
+              <td class="p2k-no-date">No start date</td>
+              <td class="p2k-count">${noStartDateCount}</td>
+            </tr>
+          `);
+        }
+
+        if (rows.length === 0) {
+          rows.push(`
+            <tr>
+              <td>No registered matches</td>
+              <td class="p2k-count">0</td>
+            </tr>
+          `);
+        }
+
+        return `
+          <div class="p2k-section">
+            <div class="p2k-section-title">
+              Registered matches by start date
+            </div>
+            <div class="p2k-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Calendar date (UTC)</th>
+                    <th>Matches</th>
+                  </tr>
+                </thead>
+                <tbody>${rows.join("")}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      function opponentSlug(opponentUrl) {
+        if (!opponentUrl) return "";
+
+        try {
+          const parsed = new URL(opponentUrl);
+          const parts = parsed.pathname.split("/").filter(Boolean);
+          return decodeURIComponent(parts[parts.length - 1] || "");
+        } catch (_) {
+          const parts = String(opponentUrl).split("/").filter(Boolean);
+          return parts[parts.length - 1] || "";
+        }
+      }
+
+      function opponentNameFromUrl(opponentUrl) {
+        const slug = opponentSlug(opponentUrl);
+        if (!slug) return "Unknown opponent";
+
+        return slug
+          .replace(/^[-_]+|[-_]+$/g, "")
+          .replace(/[-_]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .replace(/\b\w/g, character => character.toUpperCase()) ||
+          "Unknown opponent";
+      }
+
+      function opponentWebUrl(opponentUrl) {
+        const slug = opponentSlug(opponentUrl);
+        return slug
+          ? `https://www.chess.com/club/${encodeURIComponent(slug)}`
+          : "https://www.chess.com/clubs";
+      }
+
+      function matchWebUrl(matchData) {
+        const apiUrl = String(matchData?.["@id"] || "");
+        if (/\/match\/live\//i.test(apiUrl)) {
+          return apiUrl || "https://www.chess.com/clubs";
+        }
+
+        const matchId = apiUrl.match(/\/match\/(\d+)/i);
+        return matchId
+          ? `https://www.chess.com/club/matches/${matchId[1]}`
+          : apiUrl || "https://www.chess.com/clubs";
+      }
+
+      function buildOpponentGroups(registered, inProgress) {
+        const groups = new Map();
+
+        const addMatches = (matches, status) => {
+          matches.forEach(match => {
+            const opponentUrl = String(match?.opponent || "");
+            const key = opponentUrl || `unknown:${match?.["@id"] || match?.name || Math.random()}`;
+
+            if (!groups.has(key)) {
+              groups.set(key, {
+                opponentUrl,
+                opponentName: opponentNameFromUrl(opponentUrl),
+                registered: [],
+                inProgress: []
+              });
+            }
+
+            groups.get(key)[status].push(match);
+          });
+        };
+
+        addMatches(registered, "registered");
+        addMatches(inProgress, "inProgress");
+
+        return [...groups.values()].sort((groupA, groupB) =>
+          groupB.registered.length - groupA.registered.length ||
+          groupB.inProgress.length - groupA.inProgress.length ||
+          groupA.opponentName.localeCompare(groupB.opponentName)
+        );
+      }
+
+      function renderOpponentMatch(match, status) {
+        const dateKey = dateKeyFromTimestamp(match?.start_time);
+        const dateText = dateKey
+          ? `${status === "registered" ? "Starts" : "Started"} ${formatDate(dateKey)}`
+          : status === "registered"
+            ? "No start date"
+            : "Start date unavailable";
+        const statusLabel = status === "registered"
+          ? "Registration"
+          : "In progress";
+        const statusClass = status === "registered"
+          ? "p2k-registered"
+          : "p2k-progress";
+
+        return `
+          <div
+            class="p2k-opponent-match"
+            data-status="${status}"
+            data-match-search="${escapeHTML(String(match?.name || "Unnamed match").toLowerCase())}"
+          >
+            <span class="p2k-status-pill ${statusClass}">${statusLabel}</span>
+            <a
+              class="p2k-match-name"
+              href="${escapeHTML(matchWebUrl(match))}"
+              target="_blank"
+              rel="noopener"
+              title="Open this match on Chess.com"
+            >${escapeHTML(match?.name || "Unnamed match")}</a>
+            <span class="p2k-match-date">${escapeHTML(dateText)}</span>
+          </div>
+        `;
+      }
+
+      function renderOpponents(groups) {
+        const opponentsWithRegistration = groups.filter(
+          group => group.registered.length > 0
+        ).length;
+
+        const cards = groups.map((group, index) => {
+          const matches = [
+            ...group.registered.map(match => ({ match, status: "registered" })),
+            ...group.inProgress.map(match => ({ match, status: "inProgress" }))
+          ].sort((itemA, itemB) => {
+            if (itemA.status !== itemB.status) {
+              return itemA.status === "registered" ? -1 : 1;
+            }
+
+            return Number(itemA.match?.start_time || Number.MAX_SAFE_INTEGER) -
+              Number(itemB.match?.start_time || Number.MAX_SAFE_INTEGER);
+          });
+
+          return `
+            <details
+              class="p2k-opponent-card"
+              data-opponent-index="${index}"
+              data-registered-count="${group.registered.length}"
+              data-opponent-search="${escapeHTML(`${group.opponentName} ${opponentSlug(group.opponentUrl)}`.toLowerCase())}"
+            >
+              <summary>
+                <span class="p2k-opponent-name">${escapeHTML(group.opponentName)}</span>
+                <span class="p2k-opponent-counts">
+                  <span class="p2k-status-pill p2k-registered">
+                    ${group.registered.length} in registration
+                  </span>
+                  <span class="p2k-status-pill p2k-progress">
+                    ${group.inProgress.length} in progress
+                  </span>
+                </span>
+              </summary>
+              <div class="p2k-opponent-body">
+                <a
+                  class="p2k-opponent-club-link"
+                  href="${escapeHTML(opponentWebUrl(group.opponentUrl))}"
+                  target="_blank"
+                  rel="noopener"
+                >Open opponent club ↗</a>
+                <div class="p2k-opponent-matches">
+                  ${matches.map(item => renderOpponentMatch(item.match, item.status)).join("")}
+                </div>
+              </div>
+            </details>
+          `;
+        }).join("");
+
+        return `
+          <div class="p2k-section">
+            <div class="p2k-section-title-row">
+              <div class="p2k-section-title">Active matches by opponent</div>
+              <div class="p2k-note">
+                ${groups.length} opponent${groups.length === 1 ? "" : "s"},
+                ${opponentsWithRegistration} with registration open
+              </div>
+            </div>
+
+            <div class="p2k-opponent-toolbar">
+              <label class="p2k-opponent-search-group" for="p2kOpponentSearch">
+                <span class="p2k-filter-label">Search:</span>
+                <input
+                  id="p2kOpponentSearch"
+                  class="p2k-opponent-search"
+                  type="search"
+                  placeholder="Opponent or match name…"
+                  aria-label="Search opponent or match name"
+                  autocomplete="off"
+                  spellcheck="false"
+                >
+              </label>
+              <div class="p2k-filter-group" role="radiogroup" aria-label="Opponent status filter">
+                <span class="p2k-filter-label">Filter:</span>
+                <label class="p2k-radio-label">
+                  <input
+                    type="radio"
+                    name="p2kOpponentStatusFilter"
+                    value="all"
+                    checked
+                  >
+                  All active matches
+                </label>
+                <label class="p2k-radio-label">
+                  <input
+                    type="radio"
+                    name="p2kOpponentStatusFilter"
+                    value="registered"
+                  >
+                  Registration only
+                </label>
+              </div>
+              <div class="p2k-opponent-actions">
+                <button class="p2k-small-button" type="button" data-opponent-action="expand">
+                  Expand visible
+                </button>
+                <button class="p2k-small-button" type="button" data-opponent-action="collapse">
+                  Collapse all
+                </button>
+              </div>
+            </div>
+
+            <div id="p2kOpponentVisibleSummary" class="p2k-opponent-summary"></div>
+            <div class="p2k-opponent-list">
+              ${cards || '<div class="p2k-empty-opponents">No active opponents found.</div>'}
+              ${cards ? '<div id="p2kOpponentNoResults" class="p2k-empty-opponents" hidden>No opponents match the current search and status filter.</div>' : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      function bindOpponentControls() {
+        const filters = root.querySelectorAll(
+          'input[name="p2kOpponentStatusFilter"]'
+        );
+        const cards = [...root.querySelectorAll(".p2k-opponent-card")];
+        const searchInput = root.querySelector("#p2kOpponentSearch");
+        const visibleSummary = root.querySelector(
+          "#p2kOpponentVisibleSummary"
+        );
+        const noResults = root.querySelector("#p2kOpponentNoResults");
+
+        const normalizeSearch = value => String(value || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .trim();
+
+        const applyFilter = () => {
+          const selected = root.querySelector(
+            'input[name="p2kOpponentStatusFilter"]:checked'
+          )?.value || "all";
+          const searchTerm = normalizeSearch(searchInput?.value);
+          let visibleOpponents = 0;
+          let visibleMatches = 0;
+
+          cards.forEach(card => {
+            const opponentSearch = normalizeSearch(
+              card.dataset.opponentSearch ||
+              card.querySelector(".p2k-opponent-name")?.textContent
+            );
+            const opponentMatchesSearch =
+              !searchTerm || opponentSearch.includes(searchTerm);
+            let cardVisibleMatches = 0;
+
+            card.querySelectorAll(".p2k-opponent-match").forEach(matchRow => {
+              const statusMatches = selected === "all" ||
+                matchRow.dataset.status === "registered";
+              const matchSearch = normalizeSearch(
+                matchRow.dataset.matchSearch ||
+                matchRow.querySelector(".p2k-match-name")?.textContent
+              );
+              const textMatches = !searchTerm ||
+                opponentMatchesSearch ||
+                matchSearch.includes(searchTerm);
+              const showMatch = statusMatches && textMatches;
+
+              matchRow.hidden = !showMatch;
+              if (showMatch) cardVisibleMatches += 1;
+            });
+
+            const showCard = cardVisibleMatches > 0;
+            card.hidden = !showCard;
+
+            if (showCard) {
+              visibleOpponents += 1;
+              visibleMatches += cardVisibleMatches;
+            }
+          });
+
+          if (noResults) {
+            noResults.hidden = visibleOpponents !== 0;
+          }
+
+          if (visibleSummary) {
+            const searchSuffix = searchTerm
+              ? ` matching “${searchInput.value.trim()}”`
+              : "";
+            visibleSummary.textContent =
+              `Showing ${visibleOpponents} opponent${visibleOpponents === 1 ? "" : "s"}${searchSuffix} ` +
+              `and ${visibleMatches} match${visibleMatches === 1 ? "" : "es"}. ` +
+              "Click an opponent to list its matches.";
+          }
+        };
+
+        filters.forEach(filter => {
+          filter.addEventListener("change", applyFilter);
+        });
+
+        searchInput?.addEventListener("input", applyFilter);
+        searchInput?.addEventListener("search", applyFilter);
+
+        root.querySelectorAll("[data-opponent-action]").forEach(button => {
+          button.addEventListener("click", () => {
+            const shouldExpand = button.dataset.opponentAction === "expand";
+            cards.forEach(card => {
+              if (shouldExpand && card.hidden) return;
+              card.open = shouldExpand;
+            });
+          });
+        });
+
+        applyFilter();
+      }
+
+      function bindTabs() {
+        const tabButtons = [...root.querySelectorAll(".p2k-tab-button")];
+        const tabPanels = [...root.querySelectorAll(".p2k-tab-panel")];
+
+        const activateTab = tabName => {
+          tabButtons.forEach(button => {
+            const isActive = button.dataset.tab === tabName;
+            button.setAttribute("aria-selected", String(isActive));
+            button.tabIndex = isActive ? 0 : -1;
+          });
+
+          tabPanels.forEach(panel => {
+            panel.hidden = panel.dataset.tabPanel !== tabName;
+          });
+        };
+
+        tabButtons.forEach((button, index) => {
+          button.addEventListener("click", () => {
+            activateTab(button.dataset.tab);
+          });
+
+          button.addEventListener("keydown", event => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+              return;
+            }
+
+            event.preventDefault();
+            const direction = event.key === "ArrowRight" ? 1 : -1;
+            const nextIndex = (index + direction + tabButtons.length) % tabButtons.length;
+            tabButtons[nextIndex].focus();
+            activateTab(tabButtons[nextIndex].dataset.tab);
+          });
+        });
+
+        activateTab("creation");
+      }
+
+      function renderChart(dateKeys, counts, average) {
+        const values = dateKeys.map(key => counts.get(key) || 0);
+        const maxValue = Math.max(1, ...values, average);
+        const tickStep = Math.max(1, Math.ceil(maxValue / 4));
+        const axisMax = tickStep * 4;
+
+        const width = 960;
+        const height = 340;
+        const left = 48;
+        const right = 18;
+        const top = 24;
+        const bottom = 58;
+        const chartWidth = width - left - right;
+        const chartHeight = height - top - bottom;
+        const slotWidth = chartWidth / dateKeys.length;
+        const barWidth = Math.max(5, slotWidth * .58);
+
+        const gridLines = [];
+        for (let index = 0; index <= 4; index += 1) {
+          const value = tickStep * index;
+          const y = top + chartHeight - (value / axisMax) * chartHeight;
+
+          gridLines.push(`
+            <line
+              x1="${left}"
+              y1="${y.toFixed(2)}"
+              x2="${width - right}"
+              y2="${y.toFixed(2)}"
+              stroke="rgba(255,255,255,.12)"
+              stroke-width="1"
+            />
+            <text
+              x="${left - 8}"
+              y="${(y + 4).toFixed(2)}"
+              fill="#aaa198"
+              font-size="11"
+              text-anchor="end"
+            >${value}</text>
+          `);
+        }
+
+        const bars = dateKeys.map((key, index) => {
+          const value = values[index];
+          const barHeight = (value / axisMax) * chartHeight;
+          const x = left + index * slotWidth +
+            (slotWidth - barWidth) / 2;
+          const y = top + chartHeight - barHeight;
+          const showLabel =
+            index === 0 ||
+            index === dateKeys.length - 1 ||
+            index % 3 === 0;
+
+          return `
+            <g>
+              <title>${escapeHTML(formatDate(key))}: ${value} started match${value === 1 ? "" : "es"}</title>
+              <rect
+                x="${x.toFixed(2)}"
+                y="${y.toFixed(2)}"
+                width="${barWidth.toFixed(2)}"
+                height="${Math.max(0, barHeight).toFixed(2)}"
+                rx="2"
+                fill="#d98d18"
+              />
+              ${value > 0 ? `
+                <text
+                  x="${(x + barWidth / 2).toFixed(2)}"
+                  y="${Math.max(top + 10, y - 5).toFixed(2)}"
+                  fill="#ffd078"
+                  font-size="10"
+                  font-weight="700"
+                  text-anchor="middle"
+                >${value}</text>
+              ` : ""}
+              ${showLabel ? `
+                <text
+                  x="${(x + barWidth / 2).toFixed(2)}"
+                  y="${height - 28}"
+                  fill="#aaa198"
+                  font-size="10"
+                  text-anchor="middle"
+                >${escapeHTML(formatShortDate(key))}</text>
+              ` : ""}
+            </g>
+          `;
+        }).join("");
+
+        const averageY =
+          top + chartHeight - (average / axisMax) * chartHeight;
+
+        return `
+          <div class="p2k-section">
+            <div class="p2k-section-title">
+              Started matches — last ${DAYS_CHART} days
+            </div>
+            <div class="p2k-chart-wrap">
+              <svg
+                class="p2k-chart"
+                viewBox="0 0 ${width} ${height}"
+                role="img"
+                aria-label="Bar chart of matches started during the last ${DAYS_CHART} days"
+              >
+                ${gridLines.join("")}
+                <line
+                  x1="${left}"
+                  y1="${top + chartHeight}"
+                  x2="${width - right}"
+                  y2="${top + chartHeight}"
+                  stroke="rgba(255,255,255,.28)"
+                  stroke-width="1"
+                />
+                ${bars}
+                <line
+                  x1="${left}"
+                  y1="${averageY.toFixed(2)}"
+                  x2="${width - right}"
+                  y2="${averageY.toFixed(2)}"
+                  stroke="#91e09a"
+                  stroke-width="2"
+                  stroke-dasharray="7 5"
+                />
+                <text
+                  x="${width - right - 4}"
+                  y="${Math.max(top + 12, averageY - 6).toFixed(2)}"
+                  fill="#91e09a"
+                  font-size="11"
+                  font-weight="700"
+                  text-anchor="end"
+                >Average: ${average.toFixed(2)}</text>
+              </svg>
+            </div>
+            <div class="p2k-chart-legend">
+              <span><i class="p2k-swatch"></i>Started matches</span>
+              <span><i class="p2k-average-line"></i>30-day daily average</span>
+            </div>
+            <div class="p2k-note">
+              The period includes today and days with zero started matches.
+              Dates are calculated in UTC.
+            </div>
+          </div>
+        `;
+      }
+
+      function renderAnalysis(data) {
+        const registered = Array.isArray(data?.registered)
+          ? data.registered
+          : [];
+
+        const inProgress = Array.isArray(data?.in_progress)
+          ? data.in_progress
+          : Array.isArray(data?.on_going)
+            ? data.on_going
+            : [];
+
+        const finished = Array.isArray(data?.finished)
+          ? data.finished
+          : [];
+
+        const startedMatches = [...inProgress, ...finished];
+        const chartKeys = dateRangeKeys(DAYS_CHART);
+        const chartCounts =
+          countMatchesByDate(startedMatches, chartKeys);
+
+        const startedLast30Days = chartKeys.reduce(
+          (total, key) => total + (chartCounts.get(key) || 0),
+          0
+        );
+
+        const dailyAverage = startedLast30Days / DAYS_CHART;
+        const opponentGroups = buildOpponentGroups(registered, inProgress);
+
+        resultsBox.innerHTML = `
+          <div class="p2k-tabs" role="tablist" aria-label="Analyzer displays">
+            <button
+              class="p2k-tab-button"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="p2kCreationTabPanel"
+              data-tab="creation"
+            >Match creation</button>
+            <button
+              class="p2k-tab-button"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="p2kOpponentsTabPanel"
+              data-tab="opponents"
+              tabindex="-1"
+            >Opponents statistics</button>
+          </div>
+
+          <div
+            id="p2kCreationTabPanel"
+            class="p2k-tab-panel"
+            role="tabpanel"
+            data-tab-panel="creation"
+          >
+            <div class="p2k-metrics">
+              ${renderMetric(registered.length, "Matches in registration")}
+              ${renderMetric(inProgress.length, "Matches in progress")}
+              ${renderMetric(startedLast30Days, `Started in ${DAYS_CHART} days`)}
+              ${renderMetric(dailyAverage.toFixed(2), "Average started per day")}
+            </div>
+            ${renderRegistrationTable(registered)}
+            ${renderChart(chartKeys, chartCounts, dailyAverage)}
+          </div>
+
+          <div
+            id="p2kOpponentsTabPanel"
+            class="p2k-tab-panel"
+            role="tabpanel"
+            data-tab-panel="opponents"
+            hidden
+          >
+            ${renderOpponents(opponentGroups)}
+          </div>
+        `;
+
+        resultsBox.style.display = "block";
+        bindTabs();
+        bindOpponentControls();
+      }
+
+      async function analyzeMatches() {
+        analyzeButton.disabled = true;
+        analyzeButton.textContent = "Analyzing...";
+        resultsBox.style.display = "none";
+        setStatus("Loading Promote to King match data...");
+
+        try {
+          const data = await loadJSON(MATCH_LIST_URL);
+          renderAnalysis(data);
+          setStatus("Analysis complete.", "success");
+        } catch (error) {
+          console.error(error);
+          setStatus(
+            "Unable to load the Chess.com match data. Please try again.",
+            "error"
+          );
+        } finally {
+          analyzeButton.disabled = false;
+          analyzeButton.textContent = "Analyze matches";
+        }
+      }
+
+      analyzeButton.addEventListener("click", analyzeMatches);
+    })();
+  </script>
+</div>
