@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Match Creation Analyzer</title>
-  <!-- Version 7: standalone page, automatic basic stats, progressive detailed board loading, cancellation -->
+  <!-- Version 10: preserve partial data on cancellation and allow detailed analysis to resume -->
   <style>
 
     :root {
@@ -545,6 +545,21 @@
       background: rgba(0, 0, 0, .11);
     }
 
+    #p2kCreationAnalyzer .p2k-match-main {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    #p2kCreationAnalyzer .p2k-match-title-label {
+      color: #aaa197;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+
     #p2kCreationAnalyzer .p2k-match-name {
       min-width: 0;
       color: #f4ede5 !important;
@@ -807,7 +822,12 @@
     <div class="p2k-status-row">
       <div id="p2kCreationStatusText" class="p2k-status-text"></div>
       <div id="p2kCreationProcessingActions" class="p2k-processing-actions">
-        <button id="p2kCreationCancelButton" class="p2k-cancel-button" type="button">
+        <button
+          id="p2kCreationCancelButton"
+          class="p2k-cancel-button"
+          type="button"
+          title="Pause the detailed analysis and keep all data loaded so far"
+        >
           Cancel
         </button>
       </div>
@@ -826,7 +846,6 @@
       const P2K_CLUB_SLUG = "promote-to-king";
       const REQUEST_ATTEMPTS = 3;
       const JSONP_TIMEOUT_MS = 20000;
-      const DAYS_RECENT = 10;
       const DAYS_CHART = 30;
 
       const root = document.getElementById("p2kCreationAnalyzer");
@@ -846,6 +865,7 @@
       let activeController = null;
       let cancelRequested = false;
       let isDetailedAnalysisRunning = false;
+      let isDetailedAnalysisPaused = false;
 
       class HttpError extends Error {
         constructor(status, url) {
@@ -1268,7 +1288,7 @@
           detail,
           error,
           detailState: detail ? "loaded" : error ? "failed" : "pending",
-          name: String(detail?.name || summary?.name || "Unnamed match"),
+          name: String(summary?.name || detail?.name || "Unnamed match").trim() || "Unnamed match",
           apiUrl: String(summary?.["@id"] || detail?.["@id"] || ""),
           webUrl: matchWebUrl(summary, detail),
           startTime,
@@ -1313,10 +1333,25 @@
       }
 
       function detailQueue(records) {
+        const recentDateKeys = new Set(dateRangeKeys(DAYS_CHART));
+        const recentInProgress = records.inProgress.filter(record =>
+          recentDateKeys.has(dateKeyFromTimestamp(record.startTime))
+        );
+        const remainingInProgress = records.inProgress.filter(record =>
+          !recentDateKeys.has(dateKeyFromTimestamp(record.startTime))
+        );
+
+        /*
+         * Request order deliberately prioritizes the Match creation tab:
+         * 1. registration matches update the registration board totals;
+         * 2. recent in-progress and finished matches update the 30-day chart;
+         * 3. older or undated in-progress matches complete opponent statistics.
+         */
         const rawQueue = [
           ...records.registered,
-          ...records.inProgress,
-          ...records.finished
+          ...recentInProgress,
+          ...records.finished,
+          ...remainingInProgress
         ];
         const seenUrls = new Set();
 
@@ -1328,23 +1363,37 @@
         });
       }
 
-      async function loadDetailedRecords(records, runId) {
-        const queue = detailQueue(records);
-        records.failed = 0;
-        records.processed = 0;
-        records.requested = queue.length;
+      async function loadDetailedRecords(records, runId, resume = false) {
+        const orderedQueue = detailQueue(records);
+
+        if (!resume) {
+          records.failed = 0;
+          records.processed = 0;
+          records.requested = orderedQueue.length;
+        } else if (!records.requested) {
+          records.requested = orderedQueue.length;
+        }
+
+        /*
+         * Loaded and failed records are preserved when resuming. Only records
+         * that are still pending are requested, in the same priority order.
+         */
+        const queue = orderedQueue.filter(
+          record => record.detailState === "pending"
+        );
 
         if (queue.length === 0) return records;
 
         for (let index = 0; index < queue.length; index += 1) {
           throwIfCancelled(runId);
           const record = queue[index];
-          const current = index + 1;
+          const current = records.processed + 1;
+          const total = records.requested;
 
           setStatus(
-            `Processing match ${current} of ${queue.length}`,
+            `Processing match ${current} of ${total}`,
             "working",
-            { current: index, total: queue.length },
+            { current: records.processed, total },
             true
           );
 
@@ -1372,13 +1421,13 @@
           renderAnalysis(records, {
             phase: "loading",
             processed: current,
-            total: queue.length
+            total
           });
 
           setStatus(
-            `Processing match ${current} of ${queue.length}`,
+            `Processing match ${current} of ${total}`,
             "working",
-            { current, total: queue.length },
+            { current, total },
             true
           );
         }
@@ -1457,49 +1506,6 @@
         `;
       }
 
-      function renderRecentTable(records) {
-        const keys = dateRangeKeys(DAYS_RECENT);
-        const aggregates = aggregateByDate(records, keys);
-        const todayKey = keys[keys.length - 1];
-
-        const rows = keys.map(key => {
-          const aggregate = aggregates.get(key);
-          return `
-            <tr class="${key === todayKey ? "p2k-today" : ""}">
-              <td class="p2k-date">${escapeHTML(formatDate(key))}</td>
-              <td class="p2k-count">${aggregate.matches}</td>
-              <td class="p2k-board-value">${escapeHTML(formatBoards({
-                total: aggregate.boards,
-                unknown: aggregate.unknownBoards
-              }, true))}</td>
-            </tr>
-          `;
-        }).join("");
-
-        return `
-          <div class="p2k-section">
-            <div class="p2k-section-title">
-              Matches started during the last ${DAYS_RECENT} days
-            </div>
-            <div class="p2k-table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Calendar date (UTC)</th>
-                    <th>Matches</th>
-                    <th>Boards</th>
-                  </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-              </table>
-            </div>
-            <div class="p2k-note">
-              Includes in-progress and finished matches. Today is highlighted.
-            </div>
-          </div>
-        `;
-      }
-
       function buildOpponentGroups(registered, inProgress) {
         const groups = new Map();
 
@@ -1529,11 +1535,13 @@
         registered.forEach(addRecord);
         inProgress.forEach(addRecord);
 
-        return [...groups.values()].sort((groupA, groupB) =>
-          groupB.registered.length - groupA.registered.length ||
-          groupB.inProgress.length - groupA.inProgress.length ||
-          groupA.opponentName.localeCompare(groupB.opponentName)
-        );
+        return [...groups.values()].sort((groupA, groupB) => {
+          const totalA = groupA.registered.length + groupA.inProgress.length;
+          const totalB = groupB.registered.length + groupB.inProgress.length;
+          return totalB - totalA ||
+            groupB.registered.length - groupA.registered.length ||
+            groupA.opponentName.localeCompare(groupB.opponentName);
+        });
       }
 
       function renderOpponentMatch(record) {
@@ -1558,13 +1566,16 @@
             data-match-search="${escapeHTML(record.name.toLowerCase())}"
           >
             <span class="p2k-status-pill ${statusClass}">${statusLabel}</span>
-            <a
-              class="p2k-match-name"
-              href="${escapeHTML(record.webUrl)}"
-              target="_blank"
-              rel="noopener"
-              title="Open this match on Chess.com"
-            >${escapeHTML(record.name)}</a>
+            <div class="p2k-match-main">
+              <span class="p2k-match-title-label">Match title</span>
+              <a
+                class="p2k-match-name"
+                href="${escapeHTML(record.webUrl)}"
+                target="_blank"
+                rel="noopener"
+                title="${escapeHTML(record.name)}"
+              >${escapeHTML(record.name)}</a>
+            </div>
             <span class="p2k-match-boards">${escapeHTML(boardText)}</span>
             <span class="p2k-match-date">${escapeHTML(dateText)}</span>
           </div>
@@ -1603,6 +1614,10 @@
               data-opponent-index="${index}"
               data-opponent-key="${escapeHTML(slug || group.opponentName.toLowerCase())}"
               data-registered-count="${group.registered.length}"
+              data-total-match-count="${group.registered.length + group.inProgress.length}"
+              data-total-board-count="${totalBoards.total}"
+              data-total-board-unknown="${totalBoards.unknown}"
+              data-opponent-name="${escapeHTML(group.opponentName.toLowerCase())}"
               data-opponent-search="${escapeHTML(`${group.opponentName} ${slug}`.toLowerCase())}"
             >
               <summary>
@@ -1677,6 +1692,26 @@
                   Registration only
                 </label>
               </div>
+              <div class="p2k-filter-group" role="radiogroup" aria-label="Opponent ordering">
+                <span class="p2k-filter-label">Order by:</span>
+                <label class="p2k-radio-label">
+                  <input
+                    type="radio"
+                    name="p2kOpponentOrder"
+                    value="matches"
+                    checked
+                  >
+                  Total matches
+                </label>
+                <label class="p2k-radio-label">
+                  <input
+                    type="radio"
+                    name="p2kOpponentOrder"
+                    value="boards"
+                  >
+                  Total boards
+                </label>
+              </div>
               <div class="p2k-opponent-actions">
                 <button class="p2k-small-button" type="button" data-opponent-action="expand">
                   Expand visible
@@ -1700,7 +1735,11 @@
         const filters = root.querySelectorAll(
           'input[name="p2kOpponentStatusFilter"]'
         );
+        const orderInputs = root.querySelectorAll(
+          'input[name="p2kOpponentOrder"]'
+        );
         const cards = [...root.querySelectorAll(".p2k-opponent-card")];
+        const opponentList = root.querySelector(".p2k-opponent-list");
         const searchInput = root.querySelector("#p2kOpponentSearch");
         const visibleSummary = root.querySelector(
           "#p2kOpponentVisibleSummary"
@@ -1713,7 +1752,40 @@
           .toLowerCase()
           .trim();
 
+        const sortCards = () => {
+          const order = root.querySelector(
+            'input[name="p2kOpponentOrder"]:checked'
+          )?.value || "matches";
+
+          cards.sort((cardA, cardB) => {
+            const totalMatchesA = Number(cardA.dataset.totalMatchCount || 0);
+            const totalMatchesB = Number(cardB.dataset.totalMatchCount || 0);
+            const totalBoardsA = Number(cardA.dataset.totalBoardCount || 0);
+            const totalBoardsB = Number(cardB.dataset.totalBoardCount || 0);
+            const unknownBoardsA = Number(cardA.dataset.totalBoardUnknown || 0);
+            const unknownBoardsB = Number(cardB.dataset.totalBoardUnknown || 0);
+            const nameA = cardA.dataset.opponentName || "";
+            const nameB = cardB.dataset.opponentName || "";
+
+            if (order === "boards") {
+              return totalBoardsB - totalBoardsA ||
+                totalMatchesB - totalMatchesA ||
+                unknownBoardsA - unknownBoardsB ||
+                nameA.localeCompare(nameB);
+            }
+
+            return totalMatchesB - totalMatchesA ||
+              totalBoardsB - totalBoardsA ||
+              nameA.localeCompare(nameB);
+          });
+
+          cards.forEach(card => {
+            if (opponentList) opponentList.insertBefore(card, noResults || null);
+          });
+        };
+
         const applyFilter = () => {
+          sortCards();
           const selected = root.querySelector(
             'input[name="p2kOpponentStatusFilter"]:checked'
           )?.value || "all";
@@ -1786,6 +1858,10 @@
 
         filters.forEach(filter => {
           filter.addEventListener("change", applyFilter);
+        });
+
+        orderInputs.forEach(input => {
+          input.addEventListener("change", applyFilter);
         });
 
         searchInput?.addEventListener("input", applyFilter);
@@ -2063,6 +2139,7 @@
           activeTab: root.querySelector('.p2k-tab-button[aria-selected="true"]')?.dataset.tab || "creation",
           opponentSearch: root.querySelector("#p2kOpponentSearch")?.value || "",
           opponentFilter: root.querySelector('input[name="p2kOpponentStatusFilter"]:checked')?.value || "all",
+          opponentOrder: root.querySelector('input[name="p2kOpponentOrder"]:checked')?.value || "matches",
           chartMode: root.querySelector('[data-chart-mode][aria-pressed="true"]')?.dataset.chartMode || "matches",
           expandedOpponents: [...root.querySelectorAll(".p2k-opponent-card[open]")]
             .map(card => card.dataset.opponentKey)
@@ -2085,6 +2162,12 @@
           `input[name="p2kOpponentStatusFilter"][value="${state.opponentFilter}"]`
         );
         if (filter) filter.checked = true;
+
+        const order = root.querySelector(
+          `input[name="p2kOpponentOrder"][value="${state.opponentOrder || "matches"}"]`
+        );
+        if (order) order.checked = true;
+
         searchInput?.dispatchEvent(new Event("input", { bubbles: true }));
 
         const expanded = new Set(state.expandedOpponents || []);
@@ -2178,12 +2261,16 @@
               Current board totals and averages include the values loaded so far.
             </div>
           `;
-        } else if (analysisState.phase === "cancelled") {
+        } else if (
+          analysisState.phase === "paused" ||
+          analysisState.phase === "cancelled"
+        ) {
           detailNote = `
             <div class="p2k-detail-note">
-              <strong>Detailed analyzis was cancelled.</strong>
+              <strong>Detailed analyzis is paused.</strong>
               The ${loadedCount} successfully loaded match details remain visible;
               ${pendingCount} are still pending${failedCount ? ` and ${failedCount} failed` : ""}.
+              Select <strong>Resume analyzis</strong> to continue from this point.
             </div>
           `;
         } else if (failedCount > 0 || pendingCount > 0) {
@@ -2262,7 +2349,6 @@
             </div>
             ${detailNote}
             ${renderRegistrationTable(records.registered)}
-            ${renderRecentTable(startedRecords)}
             ${renderChartSection(chartData)}
           </div>
 
@@ -2286,7 +2372,9 @@
       }
 
       async function loadBasicStatistics() {
+        isDetailedAnalysisPaused = false;
         analyzeButton.disabled = true;
+        analyzeButton.textContent = "Detailed analyzis";
         setStatus("Loading basic match statistics...");
 
         try {
@@ -2315,20 +2403,34 @@
           if (!basicData || !currentRecords) return;
         }
 
+        const resume = isDetailedAnalysisPaused;
         activeRunId += 1;
         const runId = activeRunId;
         cancelRequested = false;
         isDetailedAnalysisRunning = true;
+        isDetailedAnalysisPaused = false;
         activeController = new AbortController();
         analyzeButton.disabled = true;
-        analyzeButton.textContent = "Analyzing...";
+        analyzeButton.textContent = resume ? "Resuming..." : "Analyzing...";
 
-        // Start from clean basic records so a repeated analysis refreshes all details.
-        currentRecords = buildBasicRecords(basicData);
-        renderAnalysis(currentRecords, { phase: "loading", processed: 0, total: detailQueue(currentRecords).length });
+        if (!resume) {
+          // A new analysis starts from clean basic records.
+          currentRecords = buildBasicRecords(basicData);
+        }
+
+        const initialTotal = resume
+          ? currentRecords.requested || detailQueue(currentRecords).length
+          : detailQueue(currentRecords).length;
+        const initialProcessed = resume ? currentRecords.processed : 0;
+
+        renderAnalysis(currentRecords, {
+          phase: "loading",
+          processed: initialProcessed,
+          total: initialTotal
+        });
 
         try {
-          await loadDetailedRecords(currentRecords, runId);
+          await loadDetailedRecords(currentRecords, runId, resume);
           throwIfCancelled(runId);
           renderAnalysis(currentRecords, { phase: "complete" });
 
@@ -2342,17 +2444,27 @@
           }
         } catch (error) {
           if (error instanceof CancelledError) {
-            renderAnalysis(currentRecords, { phase: "cancelled" });
+            isDetailedAnalysisPaused = true;
+            renderAnalysis(currentRecords, { phase: "paused" });
             setStatus(
-              `Detailed analyzis cancelled after ${currentRecords.processed} of ${currentRecords.requested} matches. Partial board information is retained.`,
-              "warning"
+              `Detailed analyzis paused after ${currentRecords.processed} of ${currentRecords.requested} matches. Loaded data is retained; select Resume analyzis to continue.`,
+              "warning",
+              {
+                current: currentRecords.processed,
+                total: currentRecords.requested
+              }
             );
           } else {
             console.error(error);
-            renderAnalysis(currentRecords, { phase: "cancelled" });
+            isDetailedAnalysisPaused = true;
+            renderAnalysis(currentRecords, { phase: "paused" });
             setStatus(
-              "Detailed match data could not be fully loaded. Partial results are retained.",
-              "error"
+              "Detailed match data could not be fully loaded. Partial results are retained; select Resume analyzis to retry the pending matches.",
+              "error",
+              {
+                current: currentRecords.processed,
+                total: currentRecords.requested
+              }
             );
           }
         } finally {
@@ -2360,7 +2472,12 @@
           activeController = null;
           processingActions.style.display = "none";
           analyzeButton.disabled = false;
-          analyzeButton.textContent = "Detailed analyzis";
+          analyzeButton.textContent = isDetailedAnalysisPaused
+            ? "Resume analyzis"
+            : "Detailed analyzis";
+          analyzeButton.title = isDetailedAnalysisPaused
+            ? "Continue loading the remaining match details"
+            : "Load board counts and detailed match information";
         }
       }
 
@@ -2370,7 +2487,7 @@
         cancelButton.disabled = true;
         activeController?.abort();
         setStatus(
-          `Cancelling after ${currentRecords?.processed || 0} of ${currentRecords?.requested || 0} matches...`,
+          `Pausing after ${currentRecords?.processed || 0} of ${currentRecords?.requested || 0} matches...`,
           "warning",
           {
             current: currentRecords?.processed || 0,
