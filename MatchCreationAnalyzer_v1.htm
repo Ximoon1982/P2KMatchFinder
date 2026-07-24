@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Match Creation Analyzer</title>
-  <!-- Version 11: update calculated displays only at analysis checkpoints; keep 30-day board average strictly within the chart window -->
+  <!-- Version 14: correct secured threshold; show ongoing scores and secured outcomes; count secured wins and unavoidable losses -->
   <style>
 
     :root {
@@ -185,6 +185,43 @@
 
     #p2kCreationAnalyzer .p2k-tab-panel[hidden] {
       display: none !important;
+    }
+
+    #p2kCreationAnalyzer .p2k-scoring-section {
+      margin-top: 12px;
+      padding: 13px;
+      border: 1px solid rgba(255, 190, 60, .18);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, .13);
+    }
+
+    #p2kCreationAnalyzer .p2k-scoring-section:first-of-type {
+      margin-top: 0;
+    }
+
+    #p2kCreationAnalyzer .p2k-scoring-title {
+      margin-bottom: 10px;
+      color: #f6b73c;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    #p2kCreationAnalyzer .p2k-scoring-points {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    #p2kCreationAnalyzer .p2k-scoring-note {
+      margin-top: 10px;
+      color: #bdb4aa;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    #p2kCreationAnalyzer .p2k-scoring-note strong {
+      color: #f1d29a;
     }
 
     #p2kCreationAnalyzer .p2k-section {
@@ -511,6 +548,32 @@
       color: #a8e8b0;
     }
 
+    #p2kCreationAnalyzer .p2k-status-pill.p2k-secured-win {
+      background: rgba(62, 176, 90, .20);
+      color: #baf3c6;
+      border: 1px solid rgba(89, 220, 118, .22);
+    }
+
+    #p2kCreationAnalyzer .p2k-status-pill.p2k-secured-loss {
+      background: rgba(205, 67, 67, .20);
+      color: #ffb7b7;
+      border: 1px solid rgba(255, 103, 103, .22);
+    }
+
+    #p2kCreationAnalyzer .p2k-match-score {
+      min-width: 86px;
+      color: #f1d29a !important;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    #p2kCreationAnalyzer .p2k-match-outcome {
+      display: inline-flex;
+      justify-content: center;
+    }
+
     #p2kCreationAnalyzer .p2k-opponent-body {
       padding: 9px 10px 10px;
     }
@@ -536,7 +599,7 @@
 
     #p2kCreationAnalyzer .p2k-opponent-match {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
       align-items: center;
       gap: 8px;
       padding: 7px 8px;
@@ -704,7 +767,26 @@
       }
 
       #p2kCreationAnalyzer .p2k-metrics {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      #p2kCreationAnalyzer .p2k-metric {
+        padding: 10px 5px;
+      }
+
+      #p2kCreationAnalyzer .p2k-metric-value {
+        font-size: 19px;
+      }
+
+      #p2kCreationAnalyzer .p2k-metric-label,
+      #p2kCreationAnalyzer .p2k-metric-subvalue {
+        font-size: 9px;
+      }
+
+      #p2kCreationAnalyzer .p2k-scoring-points {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
       }
 
       #p2kCreationAnalyzer .p2k-opponent-toolbar,
@@ -731,8 +813,12 @@
         grid-template-columns: auto minmax(0, 1fr);
       }
 
+      #p2kCreationAnalyzer .p2k-match-score,
+      #p2kCreationAnalyzer .p2k-match-outcome,
       #p2kCreationAnalyzer .p2k-match-boards {
         grid-column: 2;
+        justify-content: flex-start;
+        min-width: 0;
         text-align: left;
       }
 
@@ -1244,6 +1330,76 @@
           : apiUrl || "https://www.chess.com/clubs";
       }
 
+      function matchTimeClass(match) {
+        return String(
+          match?.time_class ||
+          match?.settings?.time_class ||
+          ""
+        ).trim().toLowerCase();
+      }
+
+      function isDailyMatch(match) {
+        return matchTimeClass(match) === "daily";
+      }
+
+      function matchTeams(detail) {
+        return detail?.teams && typeof detail.teams === "object"
+          ? Object.values(detail.teams).filter(Boolean)
+          : [];
+      }
+
+      function numericTeamScore(team) {
+        const score = Number(team?.score);
+        return Number.isFinite(score) ? score : null;
+      }
+
+      function extractP2KScore(detail) {
+        const p2kTeam = matchTeams(detail).find(team =>
+          opponentSlug(team?.["@id"] || team?.url).toLowerCase() ===
+          P2K_CLUB_SLUG
+        );
+        return numericTeamScore(p2kTeam);
+      }
+
+      function extractOpponentScore(summary, detail) {
+        const expectedSlug = opponentSlug(summary?.opponent).toLowerCase();
+        const teams = matchTeams(detail);
+        const opponentTeam = teams.find(team =>
+          expectedSlug &&
+          opponentSlug(team?.["@id"] || team?.url).toLowerCase() ===
+            expectedSlug
+        ) || teams.find(team => {
+          const slug = opponentSlug(
+            team?.["@id"] || team?.url
+          ).toLowerCase();
+          return slug && slug !== P2K_CLUB_SLUG;
+        });
+        return numericTeamScore(opponentTeam);
+      }
+
+      function formatMatchScore(score) {
+        const number = Number(score);
+        if (!Number.isFinite(number)) return "—";
+        return number.toFixed(1).replace(/\.0$/, "");
+      }
+
+      function securedOutcome(record) {
+        if (record.boards === null) return null;
+        if (
+          record.p2kScore !== null &&
+          record.p2kScore > record.boards
+        ) {
+          return "win";
+        }
+        if (
+          record.opponentScore !== null &&
+          record.opponentScore > record.boards
+        ) {
+          return "loss";
+        }
+        return null;
+      }
+
       function extractOpponent(summary, detail) {
         const summaryOpponent = String(summary?.opponent || "");
         const expectedSlug = opponentSlug(summaryOpponent).toLowerCase();
@@ -1293,6 +1449,8 @@
           webUrl: matchWebUrl(summary, detail),
           startTime,
           boards: normalizeBoards(detail?.boards),
+          p2kScore: extractP2KScore(detail),
+          opponentScore: extractOpponentScore(summary, detail),
           opponentApiUrl: opponent.apiUrl,
           opponentWebUrl: opponent.webUrl,
           opponentName: opponent.name
@@ -1308,9 +1466,12 @@
       }
 
       function buildBasicRecords(data) {
-        const registered = listFromData(data, "registered");
-        const inProgress = listFromData(data, "in_progress", "on_going");
-        const finished = listFromData(data, "finished");
+        const registered = listFromData(data, "registered")
+          .filter(isDailyMatch);
+        const inProgress = listFromData(data, "in_progress", "on_going")
+          .filter(isDailyMatch);
+        const finished = listFromData(data, "finished")
+          .filter(isDailyMatch);
         const chartKeySet = new Set(dateRangeKeys(DAYS_CHART));
         const recentFinished = finished.filter(match =>
           chartKeySet.has(dateKeyFromTimestamp(match?.start_time))
@@ -1326,6 +1487,7 @@
           finished: recentFinished.map(summary =>
             createRecord(summary, "finished", null)
           ),
+          finishedResults: finished,
           failed: 0,
           processed: 0,
           requested: 0,
@@ -1499,6 +1661,205 @@
         `;
       }
 
+      function formatRate(value) {
+        return `${(Number(value || 0) * 100).toFixed(1)}%`;
+      }
+
+      function formatPoints(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return "—";
+        return number.toFixed(2).replace(/\.00$/, "");
+      }
+
+      function scoringStats(records, analysisState) {
+        const finished = Array.isArray(records.finishedResults)
+          ? records.finishedResults
+          : [];
+        const resultCounts = finished.reduce((counts, match) => {
+          const result = String(match?.result || "").trim().toLowerCase();
+          if (result === "win") counts.win += 1;
+          else if (result === "draw") counts.draw += 1;
+          else if (result === "lose" || result === "loss") counts.lose += 1;
+          else counts.unknown += 1;
+          return counts;
+        }, { win: 0, draw: 0, lose: 0, unknown: 0 });
+
+        const totalFinished = finished.length;
+        const denominator = totalFinished || 1;
+        const winRate = resultCounts.win / denominator;
+        const drawRate = resultCounts.draw / denominator;
+        const loseRate = resultCounts.lose / denominator;
+        const grossPerBoard = (5 * winRate) + (2 * drawRate);
+
+        const boardSummary = sumBoards(records.inProgress);
+        const pendingDetails = records.inProgress.filter(
+          record => record.detailState === "pending"
+        ).length;
+        const failedDetails = records.inProgress.filter(
+          record => record.detailState === "failed"
+        ).length;
+        const allOngoingRetrieved = pendingDetails === 0;
+        const paused = analysisState.phase === "paused";
+        const showPendingValues = allOngoingRetrieved || paused;
+
+        let securedPoints = 0;
+        let securedWins = 0;
+        let unavoidableLosses = 0;
+        let nonSecuredBoards = 0;
+        let unknownScores = 0;
+
+        records.inProgress.forEach(record => {
+          if (record.boards === null) return;
+
+          const outcome = securedOutcome(record);
+          if (outcome === "win") {
+            securedPoints += 5 * record.boards;
+            securedWins += 1;
+          } else {
+            nonSecuredBoards += record.boards;
+            if (outcome === "loss") unavoidableLosses += 1;
+            if (
+              record.p2kScore === null ||
+              record.opponentScore === null
+            ) {
+              unknownScores += 1;
+            }
+          }
+        });
+
+        return {
+          totalFinished,
+          resultCounts,
+          winRate,
+          drawRate,
+          loseRate,
+          grossPerBoard,
+          boardSummary,
+          pendingDetails,
+          failedDetails,
+          showPendingValues,
+          securedPoints,
+          securedWins,
+          unavoidableLosses,
+          nonSecuredBoards,
+          unknownScores,
+          projectedGrossPending: grossPerBoard * boardSummary.total,
+          finePendingPoints:
+            securedPoints + (grossPerBoard * nonSecuredBoards)
+        };
+      }
+
+      function renderScoring(records, analysisState) {
+        const stats = scoringStats(records, analysisState);
+        const finishedSubvalue = stats.resultCounts.unknown > 0
+          ? `${stats.totalFinished} finished daily matches; ${stats.resultCounts.unknown} unclassified`
+          : `${stats.totalFinished} finished daily matches`;
+
+        const pendingQualifier = !stats.showPendingValues
+          ? "Available after ongoing match details are retrieved"
+          : stats.pendingDetails > 0 || stats.failedDetails > 0 ||
+            stats.boardSummary.unknown > 0
+            ? `Partial: ${stats.boardSummary.total} known boards; ${stats.pendingDetails} pending, ${stats.failedDetails} failed`
+            : `${stats.boardSummary.total} ongoing boards`;
+
+        const securedSubvalue = !stats.showPendingValues
+          ? "Available after ongoing match details are retrieved"
+          : `${stats.securedWins} secured win${stats.securedWins === 1 ? "" : "s"}`;
+
+        const fineSubvalue = !stats.showPendingValues
+          ? "Available after ongoing match details are retrieved"
+          : `Secured total plus estimate on ${stats.nonSecuredBoards} other boards`;
+
+        return `
+          <div class="p2k-scoring-section">
+            <div class="p2k-scoring-title">Finished daily match results</div>
+            <div class="p2k-metrics">
+              ${renderMetric(
+                formatRate(stats.winRate),
+                "Win rate",
+                `${stats.resultCounts.win} wins · ${finishedSubvalue}`
+              )}
+              ${renderMetric(
+                formatRate(stats.drawRate),
+                "Draw rate",
+                `${stats.resultCounts.draw} draws · ${finishedSubvalue}`
+              )}
+              ${renderMetric(
+                formatRate(stats.loseRate),
+                "Lose rate",
+                `${stats.resultCounts.lose} losses · ${finishedSubvalue}`
+              )}
+            </div>
+          </div>
+
+          <div class="p2k-scoring-section">
+            <div class="p2k-scoring-title">Secured ongoing outcomes</div>
+            <div class="p2k-scoring-points">
+              ${renderMetric(
+                stats.showPendingValues
+                  ? stats.securedWins
+                  : "—",
+                "Secured wins",
+                stats.showPendingValues
+                  ? "P2K score is greater than the board count"
+                  : "Available after ongoing match details are retrieved"
+              )}
+              ${renderMetric(
+                stats.showPendingValues
+                  ? stats.unavoidableLosses
+                  : "—",
+                "Unavoidable losses",
+                stats.showPendingValues
+                  ? "Opponent score is greater than the board count"
+                  : "Available after ongoing match details are retrieved"
+              )}
+            </div>
+          </div>
+
+          <div class="p2k-scoring-section">
+            <div class="p2k-scoring-title">Gross and pending points</div>
+            <div class="p2k-scoring-points">
+              ${renderMetric(
+                formatPoints(stats.grossPerBoard),
+                "Gross derived points/board",
+                "5 × win rate + 2 × draw rate"
+              )}
+              ${renderMetric(
+                stats.showPendingValues
+                  ? formatPoints(stats.projectedGrossPending)
+                  : "—",
+                "Projected gross pending points",
+                pendingQualifier
+              )}
+              ${renderMetric(
+                stats.showPendingValues
+                  ? formatPoints(stats.securedPoints)
+                  : "—",
+                "Secured points",
+                securedSubvalue
+              )}
+              ${renderMetric(
+                stats.showPendingValues
+                  ? formatPoints(stats.finePendingPoints)
+                  : "—",
+                "Fine pending points",
+                fineSubvalue
+              )}
+            </div>
+            <div class="p2k-scoring-note">
+              <strong>Secured-match rule:</strong>
+              a match qualifies only when Promote to King’s current score is
+              strictly greater than its board count. Matches that do not
+              qualify use the gross derived points-per-board estimate in the
+              fine pending calculation.
+              ${stats.unknownScores > 0 && stats.showPendingValues
+                ? `<br>${stats.unknownScores} loaded ongoing match${stats.unknownScores === 1 ? "" : "es"} had an incomplete current score and were treated as non-secured.`
+                : ""}
+            </div>
+          </div>
+        `;
+      }
+
       function renderRegistrationTable(records) {
         const aggregates = aggregateByDate(records);
         const noDateRecords = records.filter(record => !record.startTime);
@@ -1609,6 +1970,19 @@
         const boardText = record.boards === null
           ? "Boards unavailable"
           : `${record.boards} board${record.boards === 1 ? "" : "s"}`;
+        const scoreAvailable =
+          record.p2kScore !== null || record.opponentScore !== null;
+        const scoreText = scoreAvailable
+          ? `P2K ${formatMatchScore(record.p2kScore)} – ${formatMatchScore(record.opponentScore)} Opp.`
+          : isRegistered
+            ? "Score not started"
+            : "Score unavailable";
+        const outcome = isRegistered ? null : securedOutcome(record);
+        const outcomeBadge = outcome === "win"
+          ? '<span class="p2k-status-pill p2k-secured-win">Secured win</span>'
+          : outcome === "loss"
+            ? '<span class="p2k-status-pill p2k-secured-loss">Unavoidable loss</span>'
+            : '<span class="p2k-status-pill p2k-boards">Not secured</span>';
 
         return `
           <div
@@ -1628,6 +2002,8 @@
                 title="${escapeHTML(record.name)}"
               >${escapeHTML(record.name)}</a>
             </div>
+            <span class="p2k-match-score">${escapeHTML(scoreText)}</span>
+            <span class="p2k-match-outcome">${outcomeBadge}</span>
             <span class="p2k-match-boards">${escapeHTML(boardText)}</span>
             <span class="p2k-match-date">${escapeHTML(dateText)}</span>
           </div>
@@ -2310,7 +2686,7 @@
         if (analysisState.phase === "basic") {
           detailNote = `
             <div class="p2k-detail-note">
-              <strong>Basic statistics are loaded automatically.</strong>
+              <strong>Basic daily-match statistics are loaded automatically.</strong>
               Board counts are shown as unavailable until you select
               <strong>Detailed analyzis</strong>.
             </div>
@@ -2391,6 +2767,15 @@
               data-tab="opponents"
               tabindex="-1"
             >Opponents statistics</button>
+            <button
+              class="p2k-tab-button"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="p2kScoringTabPanel"
+              data-tab="scoring"
+              tabindex="-1"
+            >Scoring</button>
           </div>
 
           <div
@@ -2402,26 +2787,24 @@
             <div class="p2k-metrics">
               ${renderMetric(
                 records.registered.length,
-                "Matches in registration",
-                `${formatBoards(registrationBoards)} boards`
+                "Matches in registration"
+              )}
+              ${renderMetric(
+                records.inProgress.length,
+                "Matches in progress"
+              )}
+              ${renderMetric(
+                averageMatches.toFixed(2),
+                "Average started matches/day",
+                `${startedMatchesLast30} during ${DAYS_CHART} days`
               )}
               ${renderMetric(
                 formatBoards(registrationBoards, true),
                 "Boards in registration"
               )}
               ${renderMetric(
-                records.inProgress.length,
-                "Matches in progress",
-                `${formatBoards(progressBoards)} boards`
-              )}
-              ${renderMetric(
                 formatBoards(progressBoards, true),
                 "Boards in progress"
-              )}
-              ${renderMetric(
-                averageMatches.toFixed(2),
-                "Average started matches/day",
-                `${startedMatchesLast30} during ${DAYS_CHART} days`
               )}
               ${renderMetric(
                 averageBoardsDisplay,
@@ -2444,6 +2827,17 @@
             ${renderOpponents(opponentGroups)}
             ${detailNote}
           </div>
+
+          <div
+            id="p2kScoringTabPanel"
+            class="p2k-tab-panel"
+            role="tabpanel"
+            data-tab-panel="scoring"
+            hidden
+          >
+            ${renderScoring(records, analysisState)}
+            ${detailNote}
+          </div>
         `;
 
         resultsBox.style.display = "block";
@@ -2457,14 +2851,14 @@
         isDetailedAnalysisPaused = false;
         analyzeButton.disabled = true;
         analyzeButton.textContent = "Detailed analyzis";
-        setStatus("Loading basic match statistics...");
+        setStatus("Loading basic daily match statistics...");
 
         try {
           basicData = await loadJSON(MATCH_LIST_URL);
           currentRecords = buildBasicRecords(basicData);
           renderAnalysis(currentRecords, { phase: "basic" });
           setStatus(
-            "Basic statistics loaded. Select Detailed analyzis to load board counts.",
+            "Basic daily statistics loaded. Select Detailed analyzis to load board counts and scoring projections.",
             "success"
           );
           analyzeButton.disabled = false;
