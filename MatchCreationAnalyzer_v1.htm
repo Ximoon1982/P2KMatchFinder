@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Match Creation Analyzer</title>
-  <!-- Version 17: exclude unavoidable-loss matches from estimated pending points -->
+  <!-- Version 18: rename Teams and players tab; search player usernames by team scope; add unique active-player statistics -->
   <style>
 
     :root {
@@ -360,6 +360,21 @@
 
     #p2kCreationAnalyzer .p2k-section-title-row .p2k-section-title {
       margin: 0;
+    }
+
+    #p2kCreationAnalyzer .p2k-player-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    #p2kCreationAnalyzer .p2k-match-player-counts {
+      color: #aaa197;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
     }
 
     #p2kCreationAnalyzer .p2k-opponent-toolbar {
@@ -842,6 +857,11 @@
       }
 
       #p2kCreationAnalyzer .p2k-scoring-points {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      #p2kCreationAnalyzer .p2k-player-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
       }
@@ -1515,6 +1535,37 @@
         return numericTeamScore(opponentTeam);
       }
 
+      function teamUsernames(team) {
+        if (!Array.isArray(team?.players)) return [];
+        return team.players
+          .map(player => String(player?.username || "").trim())
+          .filter(Boolean);
+      }
+
+      function extractMatchPlayers(summary, detail) {
+        const expectedSlug = opponentSlug(summary?.opponent).toLowerCase();
+        const teams = matchTeams(detail);
+        const ownTeam = teams.find(team =>
+          opponentSlug(team?.["@id"] || team?.url).toLowerCase() ===
+            P2K_CLUB_SLUG
+        );
+        const opponentTeam = teams.find(team =>
+          expectedSlug &&
+          opponentSlug(team?.["@id"] || team?.url).toLowerCase() ===
+            expectedSlug
+        ) || teams.find(team => {
+          const slug = opponentSlug(
+            team?.["@id"] || team?.url
+          ).toLowerCase();
+          return slug && slug !== P2K_CLUB_SLUG;
+        });
+
+        return {
+          own: teamUsernames(ownTeam),
+          opponent: teamUsernames(opponentTeam)
+        };
+      }
+
       function formatMatchScore(score) {
         const number = Number(score);
         if (!Number.isFinite(number)) return "—";
@@ -1574,6 +1625,7 @@
 
       function createRecord(summary, status, detail, error = null) {
         const opponent = extractOpponent(summary, detail);
+        const players = extractMatchPlayers(summary, detail);
         const detailStartTime = Number(detail?.start_time);
         const summaryStartTime = Number(summary?.start_time);
         const startTime = Number.isFinite(detailStartTime) && detailStartTime > 0
@@ -1595,6 +1647,9 @@
           boards: normalizeBoards(detail?.boards),
           p2kScore: extractP2KScore(detail),
           opponentScore: extractOpponentScore(summary, detail),
+          ownPlayers: players.own,
+          opponentPlayers: players.opponent,
+          playerDataLoaded: Boolean(detail),
           opponentApiUrl: opponent.apiUrl,
           opponentWebUrl: opponent.webUrl,
           opponentName: opponent.name
@@ -2159,6 +2214,11 @@
             : outcome === "loss"
               ? '<span class="p2k-status-pill p2k-secured-loss">Unavoidable loss</span>'
               : '<span class="p2k-status-pill p2k-boards">Not secured</span>';
+        const ownPlayerText = (record.ownPlayers || []).join(", ");
+        const opponentPlayerText = (record.opponentPlayers || []).join(", ");
+        const playerCountText = record.playerDataLoaded
+          ? `P2K ${(record.ownPlayers || []).length} · Opponent ${(record.opponentPlayers || []).length} players`
+          : "Player lists unavailable until detailed data is loaded";
 
         return `
           <div
@@ -2166,6 +2226,9 @@
             data-status="${record.status}"
             data-board-count="${record.boards === null ? "" : record.boards}"
             data-match-search="${escapeHTML(record.name.toLowerCase())}"
+            data-own-players="${escapeHTML(ownPlayerText.toLowerCase())}"
+            data-opponent-players="${escapeHTML(opponentPlayerText.toLowerCase())}"
+            data-player-data-loaded="${record.playerDataLoaded ? "true" : "false"}"
           >
             <span class="p2k-status-pill ${statusClass}">${statusLabel}</span>
             <div class="p2k-match-main">
@@ -2177,11 +2240,134 @@
                 rel="noopener"
                 title="${escapeHTML(record.name)}"
               >${escapeHTML(record.name)}</a>
+              <span
+                class="p2k-match-player-counts"
+                title="${escapeHTML(`P2K: ${ownPlayerText || "unavailable"} | Opponent: ${opponentPlayerText || "unavailable"}`)}"
+              >${escapeHTML(playerCountText)}</span>
             </div>
             <span class="p2k-match-score">${escapeHTML(scoreText)}</span>
             <span class="p2k-match-outcome">${outcomeBadge}</span>
             <span class="p2k-match-boards">${escapeHTML(boardText)}</span>
             <span class="p2k-match-date">${escapeHTML(dateText)}</span>
+          </div>
+        `;
+      }
+
+      function uniquePlayerStatistics(groups) {
+        const ownRegistered = new Set();
+        const ownPlaying = new Set();
+        const opponentRegistered = new Set();
+        const opponentPlaying = new Set();
+
+        const registrationRecords = groups.flatMap(
+          group => group.registered
+        );
+        const progressRecords = groups.flatMap(
+          group => group.inProgress
+        );
+
+        const addPlayers = (target, usernames) => {
+          (usernames || []).forEach(username => {
+            const normalized = String(username || "").trim().toLowerCase();
+            if (normalized) target.add(normalized);
+          });
+        };
+
+        registrationRecords.forEach(record => {
+          addPlayers(ownRegistered, record.ownPlayers);
+          addPlayers(opponentRegistered, record.opponentPlayers);
+        });
+        progressRecords.forEach(record => {
+          addPlayers(ownPlaying, record.ownPlayers);
+          addPlayers(opponentPlaying, record.opponentPlayers);
+        });
+
+        return {
+          ownRegistered: ownRegistered.size,
+          ownPlaying: ownPlaying.size,
+          opponentRegistered: opponentRegistered.size,
+          opponentPlaying: opponentPlaying.size,
+          registrationLoaded: registrationRecords.filter(
+            record => record.playerDataLoaded
+          ).length,
+          registrationTotal: registrationRecords.length,
+          progressLoaded: progressRecords.filter(
+            record => record.playerDataLoaded
+          ).length,
+          progressTotal: progressRecords.length
+        };
+      }
+
+      function playerMetricValue(value, loaded, total) {
+        if (total === 0) return 0;
+        return loaded > 0 ? value : "—";
+      }
+
+      function playerMetricSubvalue(loaded, total, matchType) {
+        if (total === 0) return `No daily ${matchType} matches`;
+        if (loaded === 0) {
+          return "Available after Detailed analyzis";
+        }
+        if (loaded >= total) {
+          return `Complete across ${total} ${matchType} match${total === 1 ? "" : "es"}`;
+        }
+        return `Partial: ${loaded} of ${total} ${matchType} matches loaded`;
+      }
+
+      function renderPlayerStatistics(groups) {
+        const stats = uniquePlayerStatistics(groups);
+        const registeredNote = playerMetricSubvalue(
+          stats.registrationLoaded,
+          stats.registrationTotal,
+          "registration"
+        );
+        const playingNote = playerMetricSubvalue(
+          stats.progressLoaded,
+          stats.progressTotal,
+          "in-progress"
+        );
+
+        return `
+          <div class="p2k-scoring-section" style="margin-top: 0;">
+            <div class="p2k-scoring-title">Unique players across active daily matches</div>
+            <div class="p2k-player-metrics">
+              ${renderMetric(
+                playerMetricValue(
+                  stats.ownRegistered,
+                  stats.registrationLoaded,
+                  stats.registrationTotal
+                ),
+                "P2K players registered",
+                registeredNote
+              )}
+              ${renderMetric(
+                playerMetricValue(
+                  stats.ownPlaying,
+                  stats.progressLoaded,
+                  stats.progressTotal
+                ),
+                "P2K players currently playing",
+                playingNote
+              )}
+              ${renderMetric(
+                playerMetricValue(
+                  stats.opponentRegistered,
+                  stats.registrationLoaded,
+                  stats.registrationTotal
+                ),
+                "Opponent players registered",
+                registeredNote
+              )}
+              ${renderMetric(
+                playerMetricValue(
+                  stats.opponentPlaying,
+                  stats.progressLoaded,
+                  stats.progressTotal
+                ),
+                "Opponent players currently playing",
+                playingNote
+              )}
+            </div>
           </div>
         `;
       }
@@ -2254,11 +2440,12 @@
         }).join("");
 
         return `
+          ${renderPlayerStatistics(groups)}
           <div class="p2k-section">
             <div class="p2k-section-title-row">
-              <div class="p2k-section-title">Active matches by opponent</div>
+              <div class="p2k-section-title">Active teams, matches and players</div>
               <div class="p2k-note">
-                ${groups.length} opponent${groups.length === 1 ? "" : "s"},
+                ${groups.length} opposing team${groups.length === 1 ? "" : "s"},
                 ${opponentsWithRegistration} with registration open
               </div>
             </div>
@@ -2270,13 +2457,41 @@
                   id="p2kOpponentSearch"
                   class="p2k-opponent-search"
                   type="search"
-                  placeholder="Opponent or match name…"
-                  aria-label="Search opponent or match name"
+                  placeholder="Team, match, or player…"
+                  aria-label="Search team, match name, or player username"
                   autocomplete="off"
                   spellcheck="false"
                 >
               </label>
-              <div class="p2k-filter-group" role="radiogroup" aria-label="Opponent status filter">
+              <div class="p2k-filter-group" role="radiogroup" aria-label="Player search team">
+                <span class="p2k-filter-label">Player team:</span>
+                <label class="p2k-radio-label">
+                  <input
+                    type="radio"
+                    name="p2kPlayerTeamScope"
+                    value="either"
+                    checked
+                  >
+                  Either
+                </label>
+                <label class="p2k-radio-label">
+                  <input
+                    type="radio"
+                    name="p2kPlayerTeamScope"
+                    value="own"
+                  >
+                  Our team
+                </label>
+                <label class="p2k-radio-label">
+                  <input
+                    type="radio"
+                    name="p2kPlayerTeamScope"
+                    value="opponent"
+                  >
+                  Opponent team
+                </label>
+              </div>
+              <div class="p2k-filter-group" role="radiogroup" aria-label="Match status filter">
                 <span class="p2k-filter-label">Filter:</span>
                 <label class="p2k-radio-label">
                   <input
@@ -2326,10 +2541,13 @@
               </div>
             </div>
 
+            <div class="p2k-note" style="margin: -2px 0 9px;">
+              Player usernames become searchable as detailed match data is retrieved.
+            </div>
             <div id="p2kOpponentVisibleSummary" class="p2k-opponent-summary"></div>
             <div class="p2k-opponent-list">
-              ${cards || '<div class="p2k-empty-opponents">No active opponents found.</div>'}
-              ${cards ? '<div id="p2kOpponentNoResults" class="p2k-empty-opponents" hidden>No opponents match the current search and status filter.</div>' : ''}
+              ${cards || '<div class="p2k-empty-opponents">No active opposing teams found.</div>'}
+              ${cards ? '<div id="p2kOpponentNoResults" class="p2k-empty-opponents" hidden>No teams, matches, or players match the current filters.</div>' : ''}
             </div>
           </div>
         `;
@@ -2341,6 +2559,9 @@
         );
         const orderInputs = root.querySelectorAll(
           'input[name="p2kOpponentOrder"]'
+        );
+        const playerScopeInputs = root.querySelectorAll(
+          'input[name="p2kPlayerTeamScope"]'
         );
         const cards = [...root.querySelectorAll(".p2k-opponent-card")];
         const opponentList = root.querySelector(".p2k-opponent-list");
@@ -2393,6 +2614,9 @@
           const selected = root.querySelector(
             'input[name="p2kOpponentStatusFilter"]:checked'
           )?.value || "all";
+          const playerScope = root.querySelector(
+            'input[name="p2kPlayerTeamScope"]:checked'
+          )?.value || "either";
           const searchTerm = normalizeSearch(searchInput?.value);
           let visibleOpponents = 0;
           let visibleMatches = 0;
@@ -2415,9 +2639,24 @@
                 matchRow.dataset.matchSearch ||
                 matchRow.querySelector(".p2k-match-name")?.textContent
               );
+              const ownPlayers = normalizeSearch(
+                matchRow.dataset.ownPlayers
+              );
+              const opponentPlayers = normalizeSearch(
+                matchRow.dataset.opponentPlayers
+              );
+              const playerMatches = !searchTerm
+                ? true
+                : playerScope === "own"
+                  ? ownPlayers.includes(searchTerm)
+                  : playerScope === "opponent"
+                    ? opponentPlayers.includes(searchTerm)
+                    : ownPlayers.includes(searchTerm) ||
+                      opponentPlayers.includes(searchTerm);
               const textMatches = !searchTerm ||
                 opponentMatchesSearch ||
-                matchSearch.includes(searchTerm);
+                matchSearch.includes(searchTerm) ||
+                playerMatches;
               const showMatch = statusMatches && textMatches;
 
               matchRow.hidden = !showMatch;
@@ -2454,9 +2693,9 @@
               unknown: unknownBoards
             });
             visibleSummary.textContent =
-              `Showing ${visibleOpponents} opponent${visibleOpponents === 1 ? "" : "s"}${searchSuffix}, ` +
+              `Showing ${visibleOpponents} team${visibleOpponents === 1 ? "" : "s"}${searchSuffix}, ` +
               `${visibleMatches} match${visibleMatches === 1 ? "" : "es"} and ${boardText} boards. ` +
-              "Click an opponent to list its matches.";
+              "Click a team to list its matches.";
           }
         };
 
@@ -2465,6 +2704,10 @@
         });
 
         orderInputs.forEach(input => {
+          input.addEventListener("change", applyFilter);
+        });
+
+        playerScopeInputs.forEach(input => {
           input.addEventListener("change", applyFilter);
         });
 
@@ -2744,6 +2987,7 @@
           opponentSearch: root.querySelector("#p2kOpponentSearch")?.value || "",
           opponentFilter: root.querySelector('input[name="p2kOpponentStatusFilter"]:checked')?.value || "all",
           opponentOrder: root.querySelector('input[name="p2kOpponentOrder"]:checked')?.value || "matches",
+          playerTeamScope: root.querySelector('input[name="p2kPlayerTeamScope"]:checked')?.value || "either",
           chartMode: root.querySelector('[data-chart-mode][aria-pressed="true"]')?.dataset.chartMode || "matches",
           expandedOpponents: [...root.querySelectorAll(".p2k-opponent-card[open]")]
             .map(card => card.dataset.opponentKey)
@@ -2771,6 +3015,11 @@
           `input[name="p2kOpponentOrder"][value="${state.opponentOrder || "matches"}"]`
         );
         if (order) order.checked = true;
+
+        const playerScope = root.querySelector(
+          `input[name="p2kPlayerTeamScope"][value="${state.playerTeamScope || "either"}"]`
+        );
+        if (playerScope) playerScope.checked = true;
 
         searchInput?.dispatchEvent(new Event("input", { bubbles: true }));
 
@@ -2942,7 +3191,7 @@
               aria-controls="p2kOpponentsTabPanel"
               data-tab="opponents"
               tabindex="-1"
-            >Opponents statistics</button>
+            >Teams and players</button>
             <button
               class="p2k-tab-button"
               type="button"
