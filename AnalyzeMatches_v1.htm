@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 18 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 19 -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -369,6 +369,56 @@
   #p2kUpcomingAnalyzer .p2k-neutral-value {
     color: #e3ddd5;
     font-weight: 700;
+  }
+
+
+  #p2kUpcomingAnalyzer .p2k-prediction-panel {
+    margin-top: 12px;
+    padding: 11px 12px;
+    border: 1px solid rgba(217, 141, 24, .55);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(217, 141, 24, .13), rgba(217, 141, 24, .045));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .025);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-prediction-panel.p2k-prediction-positive {
+    border-color: rgba(104, 202, 116, .62);
+    background: linear-gradient(135deg, rgba(79, 168, 91, .18), rgba(79, 168, 91, .055));
+  }
+
+  #p2kUpcomingAnalyzer .p2k-prediction-panel.p2k-prediction-negative {
+    border-color: rgba(255, 114, 95, .62);
+    background: linear-gradient(135deg, rgba(217, 74, 58, .18), rgba(217, 74, 58, .055));
+  }
+
+  #p2kUpcomingAnalyzer .p2k-prediction-panel .p2k-detail-table {
+    margin-top: 0;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-card-prediction {
+    margin-top: 8px;
+    padding: 7px 9px;
+    border: 1px solid rgba(217, 141, 24, .46);
+    border-radius: 6px;
+    background: rgba(217, 141, 24, .09);
+    color: #e3ddd5;
+    font-size: 12px;
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-card-prediction.p2k-prediction-positive {
+    border-color: rgba(104, 202, 116, .48);
+    background: rgba(79, 168, 91, .105);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-card-prediction.p2k-prediction-negative {
+    border-color: rgba(255, 114, 95, .48);
+    background: rgba(217, 74, 58, .105);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-card-prediction strong {
+    color: #f0e4cf;
   }
 
   #p2kUpcomingAnalyzer .p2k-detail-separator {
@@ -1540,6 +1590,14 @@
   }
 
 
+  function predictionOutcomeClass(details) {
+    if (!details || details.boardCount === 0) return "p2k-prediction-neutral";
+    if (details.predictedScoreTeam1 > details.predictedScoreTeam2) return "p2k-prediction-positive";
+    if (details.predictedScoreTeam1 < details.predictedScoreTeam2) return "p2k-prediction-negative";
+    return "p2k-prediction-neutral";
+  }
+
+
   function escapeAttribute(value) {
     return escapeHTML(value).replace(/`/g, '&#096;');
   }
@@ -2048,34 +2106,36 @@
 
         <hr class="p2k-detail-separator">
 
-        <table class="p2k-detail-table" aria-label="Predicted match result">
-          <thead>
-            <tr>
-              <th scope="col">Prediction</th>
-              <th scope="col">${escapeHTML(p2kName)}</th>
-              <th scope="col">${escapeHTML(opponentName)}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Predicted score</td>
-              <td><span class="${p2kScoreClass}">${formatDecimal(details.predictedScoreTeam1, 1)}</span></td>
-              <td><span class="${opponentScoreClass}">${formatDecimal(details.predictedScoreTeam2, 1)}</span></td>
-            </tr>
-            <tr>
-              <td>Match win probability</td>
-              <td><span class="${p2kProbabilityClass}">${formatPercentage(details.p2kWinProbability)}</span></td>
-              <td><span class="${opponentProbabilityClass}">${formatPercentage(details.opponentWinProbability)}</span></td>
-            </tr>
-            <tr>
-              <td>Match draw probability</td>
-              <td colspan="2"><span class="p2k-neutral-value">${formatPercentage(details.drawProbability)}</span></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="p2k-prediction-panel ${predictionOutcomeClass(details)}">
+          <table class="p2k-detail-table" aria-label="Predicted match result">
+            <thead>
+              <tr>
+                <th scope="col">Prediction</th>
+                <th scope="col">${escapeHTML(p2kName)}</th>
+                <th scope="col">${escapeHTML(opponentName)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Predicted score</td>
+                <td><span class="${p2kScoreClass}">${formatDecimal(details.predictedScoreTeam1, 1)}</span></td>
+                <td><span class="${opponentScoreClass}">${formatDecimal(details.predictedScoreTeam2, 1)}</span></td>
+              </tr>
+              <tr>
+                <td>Match win probability</td>
+                <td><span class="${p2kProbabilityClass}">${formatPercentage(details.p2kWinProbability)}</span></td>
+                <td><span class="${opponentProbabilityClass}">${formatPercentage(details.opponentWinProbability)}</span></td>
+              </tr>
+              <tr>
+                <td>Match draw probability</td>
+                <td colspan="2"><span class="p2k-neutral-value">${formatPercentage(details.drawProbability)}</span></td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div class="p2k-model-note">
-          Win probabilities are computed from the Elo expected score of every simulated pairing over two games per board, using half-point score units so draws are included. Predicted scores use the most likely aggregate half-point result and therefore always end in .0 or .5.
+          <div class="p2k-model-note">
+            Win probabilities are computed from the Elo expected score of every simulated pairing over two games per board, using half-point score units so draws are included. Predicted scores use the most likely aggregate half-point result and therefore always end in .0 or .5.
+          </div>
         </div>
 
         ${cumulativeRatingChart}
@@ -2114,6 +2174,23 @@
       : "";
 
     const detailsExpanded = state.expandedDetails.has(match.cacheKey);
+    const prediction = match.detailedAnalysis;
+    const predictionSummary = prediction && prediction.boardCount > 0
+      ? `
+        <div class="p2k-card-prediction ${predictionOutcomeClass(prediction)}">
+          <div>
+            <strong>Predicted score:</strong>
+            Promote to King <span class="${comparisonValueClass(prediction.predictedScoreTeam1, prediction.predictedScoreTeam2, true)}">${formatDecimal(prediction.predictedScoreTeam1, 1)}</span>
+            –
+            <span class="${comparisonValueClass(prediction.predictedScoreTeam2, prediction.predictedScoreTeam1, false)}">${formatDecimal(prediction.predictedScoreTeam2, 1)}</span>
+            ${escapeHTML(match.opponentTeam.name || "Opponent")}
+          </div>
+          <div>
+            <strong>P2K victory probability:</strong>
+            <span class="${comparisonValueClass(prediction.p2kWinProbability, prediction.opponentWinProbability, true)}">${formatPercentage(prediction.p2kWinProbability)}</span>
+          </div>
+        </div>`
+      : "";
 
     return `
       <div class="${cardClass}">
@@ -2148,6 +2225,7 @@
           </div>
           <div>${lineupText}</div>
         </div>
+        ${predictionSummary}
         ${reasons}
         ${detailsExpanded ? detailedInfoHTML(match) : ""}
       </div>
