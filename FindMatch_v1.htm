@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Match Assistant</title>
-  <!-- Version 17: align filter panels with AnalyzeMatches and add match color legend -->
+  <!-- Version 19: add post-analysis match search toolbar -->
   <style>
     :root {
       font-family: Arial, Helvetica, sans-serif;
@@ -272,7 +272,86 @@
 
     .ratings strong { color: #ffd078; }
 
-    .results { margin-top: 16px; }
+    .match-search-toolbar[hidden] {
+      display: none !important;
+    }
+
+    .match-search-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0 10px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 7px;
+      background: rgba(0, 0, 0, .12);
+    }
+
+    .match-search-group {
+      display: flex;
+      flex: 1 1 220px;
+      align-items: center;
+      gap: 7px;
+      min-width: 180px;
+    }
+
+    .match-search {
+      width: 100%;
+      min-width: 0;
+      height: 32px;
+      padding: 6px 10px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 6px;
+      outline: none;
+      background: rgba(0, 0, 0, .22);
+      color: #fff3df;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .match-search::placeholder {
+      color: #9e968d;
+      opacity: 1;
+    }
+
+    .match-search:focus {
+      border-color: rgba(246, 183, 60, .82);
+      box-shadow: 0 0 0 2px rgba(217, 141, 24, .16);
+    }
+
+    .match-search-label {
+      margin-right: 2px;
+      color: #f0e4cf;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .search-clear {
+      flex: 0 0 auto;
+      min-height: 32px;
+      padding: 6px 9px;
+      border: 1px solid rgba(246, 183, 60, .45);
+      border-radius: 6px;
+      background: rgba(217, 141, 24, .10);
+      color: #ffd078;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .search-clear:hover:not(:disabled) {
+      background: rgba(217, 141, 24, .20);
+    }
+
+    .search-clear:disabled {
+      cursor: default;
+      opacity: .45;
+    }
+
+    .results { margin-top: 0; }
 
     .result-summary {
       margin-bottom: 10px;
@@ -389,6 +468,16 @@
       .finder { padding: 16px; }
       .choices { grid-template-columns: 1fr; gap: 9px; }
       .search-button { width: 100%; }
+      .match-search-toolbar,
+      .match-search-group {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .match-search-group {
+        flex-basis: auto;
+        width: 100%;
+      }
+      .search-clear { width: 100%; }
     }
   </style>
 </head>
@@ -515,6 +604,35 @@
     </div>
 
     <div id="p2kRatings" class="ratings"></div>
+
+    <div
+      id="p2kMatchSearchToolbar"
+      class="match-search-toolbar"
+      role="search"
+      aria-label="Search analyzed matches"
+      hidden
+    >
+      <div class="match-search-group">
+        <label class="match-search-label" for="p2kMatchSearch">Match</label>
+        <input
+          id="p2kMatchSearch"
+          class="match-search"
+          type="search"
+          placeholder="Search match name or opponent..."
+          autocomplete="off"
+          spellcheck="false"
+          title="Filter the analyzed results by match name or opponent club."
+        >
+        <button
+          id="p2kClearMatchSearch"
+          class="search-clear"
+          type="button"
+          title="Clear the match search and show all results allowed by the selected filters."
+          disabled
+        >Clear</button>
+      </div>
+    </div>
+
     <div id="p2kResults" class="results"></div>
   </main>
 
@@ -538,6 +656,9 @@
       const processingActions = document.getElementById("p2kProcessingActions");
       const cancelButton = document.getElementById("p2kCancelButton");
       const ratingsBox = document.getElementById("p2kRatings");
+      const matchSearchToolbar = document.getElementById("p2kMatchSearchToolbar");
+      const matchSearchInput = document.getElementById("p2kMatchSearch");
+      const clearMatchSearchButton = document.getElementById("p2kClearMatchSearch");
       const resultsBox = document.getElementById("p2kResults");
       const userAvatar = document.getElementById("p2kUserAvatar");
 
@@ -639,6 +760,38 @@
 
       function normalizeUsername(value) {
         return String(value || "").trim().toLowerCase();
+      }
+
+      function normalizeMatchSearch(value) {
+        return String(value || "").trim().toLowerCase();
+      }
+
+      function showMatchSearchToolbar() {
+        matchSearchToolbar.hidden = false;
+        clearMatchSearchButton.disabled = normalizeMatchSearch(matchSearchInput.value) === "";
+      }
+
+      function hideMatchSearchToolbar({ clear = true } = {}) {
+        matchSearchToolbar.hidden = true;
+        if (clear) matchSearchInput.value = "";
+        clearMatchSearchButton.disabled = true;
+      }
+
+      function entryMatchesSearch(entry, query) {
+        if (!query) return true;
+
+        const opponentTeam = entry?.recommendation?.opponentTeam || findOpponentTeam(entry?.match, entry?.team);
+        const searchableText = [
+          entry?.match?.name,
+          opponentTeam?.name,
+          opponentTeam?.url,
+          opponentTeam?.["@id"]
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(query);
       }
 
       function appendCallbackParameter(url, callbackName) {
@@ -1151,16 +1304,23 @@
 
       function renderResults() {
         const { matches, username, failedCount, registrationStatus } = resultState;
-        const total = matches.length;
+        const searchQuery = normalizeMatchSearch(matchSearchInput.value);
+        const searchedMatches = searchQuery
+          ? matches.filter(entry => entryMatchesSearch(entry, searchQuery))
+          : matches;
+        const total = searchedMatches.length;
+        clearMatchSearchButton.disabled = searchQuery === "";
 
         if (total === 0) {
-          let emptyMessage = "No open match corresponds to the selected filters.";
+          let emptyMessage = searchQuery
+            ? `No match name or opponent corresponds to “${matchSearchInput.value.trim()}”.`
+            : "No open match corresponds to the selected filters.";
 
-          if (registrationStatus === "registered") {
+          if (!searchQuery && registrationStatus === "registered") {
             emptyMessage = "This user is not registered in any open match matching the selected filters.";
-          } else if (registrationStatus === "not_registered") {
+          } else if (!searchQuery && registrationStatus === "not_registered") {
             emptyMessage = "No unlocked, rating-eligible, lineup-selected, unregistered match corresponds to the selected filters.";
-          } else if (registrationStatus === "all") {
+          } else if (!searchQuery && registrationStatus === "all") {
             emptyMessage = "No unlocked, rating-eligible, lineup-selected match corresponds to the selected filters.";
           }
 
@@ -1176,9 +1336,12 @@
         }
 
         const visibleCount = Math.min(resultState.visibleCount, total);
-        const visibleMatches = matches.slice(0, visibleCount);
+        const visibleMatches = searchedMatches.slice(0, visibleCount);
         const baseLabel = resultSummaryLabel(total, registrationStatus);
-        let html = `<div class="result-summary">Showing ${visibleCount} of ${baseLabel}</div>`;
+        const searchSuffix = searchQuery
+          ? ` matching “${escapeHTML(matchSearchInput.value.trim())}”`
+          : "";
+        let html = `<div class="result-summary">Showing ${visibleCount} of ${baseLabel}${searchSuffix}</div>`;
 
         for (const entry of visibleMatches) {
           const { match, rating, bounds, registered, registeredOverride, recommendation } = entry;
@@ -1347,6 +1510,7 @@
         searchButton.disabled = true;
         hideCancelButton();
         processedCache = null;
+        hideMatchSearchToolbar();
         resultsBox.innerHTML = "";
         ratingsBox.style.display = "none";
         ratingsBox.innerHTML = "";
@@ -1379,6 +1543,7 @@
 
           if (!playerClubMemberships.has(promoteToKingClubId)) {
             processedCache = null;
+            hideMatchSearchToolbar();
             resultsBox.innerHTML = "";
             setStatus(
               `${username} is not a member of Promote to King. Match analysis has been cancelled.`,
@@ -1417,6 +1582,7 @@
             };
 
             setStatus("There are currently no daily matches open for registration.", "success");
+            showMatchSearchToolbar();
             applyFiltersFromCache();
             return;
           }
@@ -1529,12 +1695,14 @@
             );
           }
 
+          showMatchSearchToolbar();
           applyFiltersFromCache();
         } catch (error) {
           if (error instanceof CancellationError || run.cancelled) {
             setStatus("Processing cancelled.", "success");
           } else {
             processedCache = null;
+            hideMatchSearchToolbar();
             hideUserAvatar();
             console.error(error);
 
@@ -1558,6 +1726,19 @@
         cancelButton.textContent = "Cancelling...";
         statusText.textContent = "Cancelling match processing...";
         activeSearch.controller.abort();
+      });
+
+      matchSearchInput.addEventListener("input", () => {
+        resultState.visibleCount = PAGE_SIZE;
+        renderResults();
+      });
+
+      clearMatchSearchButton.addEventListener("click", () => {
+        if (!matchSearchInput.value) return;
+        matchSearchInput.value = "";
+        resultState.visibleCount = PAGE_SIZE;
+        renderResults();
+        matchSearchInput.focus();
       });
 
       searchButton.addEventListener("click", searchMatches);
