@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 17 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 18 -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -761,9 +761,9 @@
   </fieldset>
 
   <div class="p2k-legend" aria-label="Match color legend">
-    <span><i class="p2k-dot p2k-dot-green"></i>Locked</span>
     <span><i class="p2k-dot p2k-dot-red"></i>Priority</span>
-    <span><i class="p2k-dot p2k-dot-orange"></i>Other</span>
+    <span><i class="p2k-dot p2k-dot-orange"></i>Open</span>
+    <span><i class="p2k-dot p2k-dot-green"></i>Locked</span>
   </div>
 
   <div id="p2kStatus" class="p2k-status" aria-live="polite">
@@ -1087,7 +1087,7 @@
   }
 
 
-  function ratingBracketStart(rating, bracketSize = 50) {
+  function ratingBracketStart(rating, bracketSize = 100) {
     return Math.floor(Number(rating) / bracketSize) * bracketSize;
   }
 
@@ -1167,7 +1167,7 @@
     registeredRatings2,
     eligibleRatings1,
     eligibleRatings2,
-    bracketSize = 50
+    bracketSize = 100
   ) {
     const combined = [...registeredRatings1, ...registeredRatings2].filter(Number.isFinite);
     if (combined.length === 0) return [];
@@ -1316,7 +1316,7 @@
         opponentRegisteredRatings,
         p2kRatingEligibleRatings,
         opponentRatingEligibleRatings,
-        50
+        100
       ),
       ratingStatistics: {
         team1: buildRatingStatistics(p2kRegisteredRatings, p2kRatingEligibleRatings),
@@ -1720,7 +1720,7 @@
     ].filter(Boolean).join("");
 
     return `
-      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Registered players by rating bracket (50 Elo)</div>${expandButton}</div>`}
+      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Registered players by rating bracket (100 Elo)</div>${expandButton}</div>`}
       <div class="p2k-chart-wrap">
         <div class="p2k-chart-scroll">
           <svg class="p2k-chart-svg" width="${chartWidth}" height="${chartBottom + bottomPadding}" viewBox="0 0 ${chartWidth} ${chartBottom + bottomPadding}" role="img" aria-label="Registered eligible and non-eligible players by rating bracket for ${escapeAttribute(p2kName)} and ${escapeAttribute(opponentName)}">
@@ -1730,7 +1730,7 @@
           </svg>
         </div>
         <div class="p2k-chart-legend">${legendItems}</div>
-        <div class="p2k-chart-note">Hover a bar to see the exact number of rating-eligible or non-eligible registered players in that 50-point Elo bracket.</div>
+        <div class="p2k-chart-note">Hover a bar to see the exact number of rating-eligible or non-eligible registered players in that 100-point Elo bracket.</div>
       </div>
     `;
   }
@@ -1980,8 +1980,8 @@
         <div id="${escapeHTML(match.detailId)}" class="p2k-expanded-details">
           ${registrationTable}
           <div class="p2k-detail-line">Detailed lineup analysis is unavailable because no eligible board can be paired.</div>
-          ${ratingHistogram}
           ${cumulativeRatingChart}
+          ${ratingHistogram}
           ${ratingStatistics}
         </div>
       `;
@@ -2078,8 +2078,8 @@
           Win probabilities are computed from the Elo expected score of every simulated pairing over two games per board, using half-point score units so draws are included. Predicted scores use the most likely aggregate half-point result and therefore always end in .0 or .5.
         </div>
 
-        ${ratingHistogram}
         ${cumulativeRatingChart}
+        ${ratingHistogram}
         ${ratingStatistics}
       </div>
     `;
