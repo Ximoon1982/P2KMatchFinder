@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Promote to King Upcoming Matches Analyzer</title>
-  <!-- Promote to King Upcoming Matches Analyzer - Version 27 -->
+  <!-- Promote to King Upcoming Matches Analyzer - Version 31: always-fresh club match index and 10-day recruitment recap -->
   <style>
   :root {
     font-family: Arial, Helvetica, sans-serif;
@@ -424,6 +424,91 @@
     border-color: rgba(255, 114, 95, .72);
     background: rgba(217, 74, 58, .18);
     color: #ff8b79;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-html {
+    display: inline-flex;
+    width: 31px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-copy-icon svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-info-mark {
+    position: relative;
+    display: inline-flex;
+    width: 17px;
+    height: 17px;
+    margin-left: 5px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(246, 183, 60, .62);
+    border-radius: 50%;
+    background: rgba(217, 141, 24, .12);
+    color: #ffd078;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+    cursor: help;
+    outline-offset: 2px;
+    z-index: 8;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-info-mark::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    width: max-content;
+    max-width: min(310px, 76vw);
+    padding: 8px 10px;
+    border: 1px solid rgba(246, 183, 60, .42);
+    border-radius: 6px;
+    background: #24211e;
+    color: #eee7de;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition: opacity .12s ease, transform .12s ease, visibility .12s ease;
+    z-index: 999;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-info-mark:hover::after,
+  #p2kUpcomingAnalyzer .p2k-info-mark:focus::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
   }
 
   #p2kUpcomingAnalyzer .p2k-expanded-details {
@@ -940,7 +1025,110 @@
       width: 31%;
     }
   }
-  </style>
+  
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-recap[hidden] {
+    display: none !important;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-recap {
+    margin: 16px 0 10px;
+    padding: 13px;
+    border: 1px solid rgba(121, 199, 232, .35);
+    border-radius: 9px;
+    background: rgba(80, 156, 192, .08);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-recap-title,
+  #p2kUpcomingAnalyzer .p2k-recruitment-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #8ed8f5;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-recap-intro {
+    margin-top: 5px;
+    color: #c9dce4;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-group {
+    margin-top: 11px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-group-heading {
+    margin-bottom: 5px;
+    color: #f0e4cf;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-list {
+    margin: 0;
+    padding-left: 19px;
+    color: #d8e5ea;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-list li + li {
+    margin-top: 5px;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-list a {
+    color: #9fe0fa;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-list a:hover {
+    text-decoration: underline;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-empty {
+    color: #9fb0b8;
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-panel {
+    margin: 12px 0;
+    padding: 11px 12px;
+    border: 1px solid rgba(121, 199, 232, .32);
+    border-radius: 8px;
+    background: rgba(80, 156, 192, .08);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-panel.p2k-recruitment-needed {
+    border-color: rgba(246, 183, 60, .55);
+    background: rgba(217, 141, 24, .10);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-panel.p2k-recruitment-ready {
+    border-color: rgba(93, 190, 105, .45);
+    background: rgba(79, 168, 91, .08);
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-main {
+    margin-top: 6px;
+    color: #f5efe7;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+
+  #p2kUpcomingAnalyzer .p2k-recruitment-meta {
+    margin-top: 5px;
+    color: #c5cdd1;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+</style>
 </head>
 <body>
 <div id="p2kUpcomingAnalyzer" class="p2k-analyzer">
@@ -1024,6 +1212,8 @@
     </div>
   </div>
 
+  <section id="p2kRecruitmentRecap" class="p2k-recruitment-recap" aria-live="polite" hidden></section>
+
   <div
     id="p2kSearchToolbar"
     class="p2k-match-search-toolbar"
@@ -1079,6 +1269,323 @@
 (() => {
   "use strict";
 
+  if (window.__P2K_SHARED_API_CACHE_INSTALLED__) return;
+  window.__P2K_SHARED_API_CACHE_INSTALLED__ = true;
+
+  const nativeFetch = window.fetch.bind(window);
+  const DB_NAME = "P2KSharedApiCache";
+  const DB_VERSION = 1;
+  const STORE_NAME = "responses";
+  const MAX_CACHE_AGE_MS = 12 * 60 * 60 * 1000;
+  const PRIORITY_CODES = ["1WL", "TCMAC", "KOTML", "TMCL", "WKCL", "PCL", "CW"];
+  const inFlight = new Map();
+  const backgroundRefreshes = new Map();
+  let databasePromise = null;
+
+  function chessApiURL(input) {
+    try {
+      const value = input instanceof Request ? input.url : String(input || "");
+      const url = new URL(value, window.location.href);
+      return url.protocol === "https:" && url.hostname === "api.chess.com" ? url.href : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function cachePolicy(url) {
+    const path = new URL(url).pathname.toLowerCase();
+    if (/\/pub\/club\/[^/]+\/matches\/?$/.test(path)) {
+      return { freshFor: 2 * 60 * 1000, usableFor: MAX_CACHE_AGE_MS };
+    }
+    if (/\/pub\/match\//.test(path)) {
+      return { freshFor: 5 * 60 * 1000, usableFor: MAX_CACHE_AGE_MS };
+    }
+    if (/\/pub\/player\//.test(path)) {
+      return { freshFor: 15 * 60 * 1000, usableFor: MAX_CACHE_AGE_MS };
+    }
+    return { freshFor: 10 * 60 * 1000, usableFor: MAX_CACHE_AGE_MS };
+  }
+
+  function openDatabase() {
+    if (databasePromise) return databasePromise;
+    databasePromise = new Promise(resolve => {
+      if (!("indexedDB" in window)) {
+        resolve(null);
+        return;
+      }
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains(STORE_NAME)) {
+          const store = database.createObjectStore(STORE_NAME, { keyPath: "url" });
+          store.createIndex("fetchedAt", "fetchedAt", { unique: false });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        console.warn("P2K shared API cache: IndexedDB unavailable", request.error);
+        resolve(null);
+      };
+      request.onblocked = () => resolve(null);
+    });
+    return databasePromise;
+  }
+
+  async function cacheGet(url) {
+    const database = await openDatabase();
+    if (!database) return null;
+    return new Promise(resolve => {
+      try {
+        const transaction = database.transaction(STORE_NAME, "readonly");
+        const request = transaction.objectStore(STORE_NAME).get(url);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => resolve(null);
+      } catch (_) {
+        resolve(null);
+      }
+    });
+  }
+
+  async function cachePut(entry) {
+    const database = await openDatabase();
+    if (!database) return;
+    await new Promise(resolve => {
+      try {
+        const transaction = database.transaction(STORE_NAME, "readwrite");
+        transaction.objectStore(STORE_NAME).put(entry);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => resolve();
+        transaction.onabort = () => resolve();
+      } catch (_) {
+        resolve();
+      }
+    });
+  }
+
+  function abortError() {
+    try { return new DOMException("The operation was aborted.", "AbortError"); }
+    catch (_) {
+      const error = new Error("The operation was aborted.");
+      error.name = "AbortError";
+      return error;
+    }
+  }
+
+  function withAbort(promise, signal) {
+    if (!signal) return promise;
+    if (signal.aborted) return Promise.reject(abortError());
+    return new Promise((resolve, reject) => {
+      const onAbort = () => reject(abortError());
+      signal.addEventListener("abort", onAbort, { once: true });
+      promise.then(
+        value => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(value);
+        },
+        error => {
+          signal.removeEventListener("abort", onAbort);
+          reject(error);
+        }
+      );
+    });
+  }
+
+  function snapshotToResponse(snapshot, cacheState = "MISS") {
+    const headers = new Headers(snapshot.headers || {});
+    headers.set("X-P2K-Cache", cacheState);
+    return new Response(snapshot.body, {
+      status: snapshot.status,
+      statusText: snapshot.statusText || "",
+      headers
+    });
+  }
+
+  function entryToSnapshot(entry) {
+    return {
+      body: entry.body,
+      status: Number(entry.status) || 200,
+      statusText: entry.statusText || "OK",
+      headers: entry.headers || { "content-type": "application/json" }
+    };
+  }
+
+  function responseHeaders(response) {
+    const headers = {};
+    response.headers.forEach((value, name) => { headers[name] = value; });
+    if (!headers["content-type"]) headers["content-type"] = "application/json";
+    return headers;
+  }
+
+  async function networkSnapshot(url, init, cachedEntry = null) {
+    const baseHeaders = new Headers(init?.headers || {});
+    const conditionalHeaders = new Headers(baseHeaders);
+    let hasConditionalHeaders = false;
+
+    if (cachedEntry?.etag) {
+      conditionalHeaders.set("If-None-Match", cachedEntry.etag);
+      hasConditionalHeaders = true;
+    }
+    if (cachedEntry?.lastModified) {
+      conditionalHeaders.set("If-Modified-Since", cachedEntry.lastModified);
+      hasConditionalHeaders = true;
+    }
+
+    const networkInit = {
+      ...(init || {}),
+      method: "GET",
+      cache: "no-cache",
+      headers: conditionalHeaders
+    };
+    delete networkInit.signal;
+
+    let response;
+    try {
+      response = await nativeFetch(url, networkInit);
+    } catch (error) {
+      if (!hasConditionalHeaders) throw error;
+      const fallbackInit = { ...networkInit, headers: baseHeaders };
+      response = await nativeFetch(url, fallbackInit);
+    }
+
+    if (response.status === 304 && cachedEntry) {
+      const refreshed = { ...cachedEntry, fetchedAt: Date.now() };
+      await cachePut(refreshed);
+      return entryToSnapshot(refreshed);
+    }
+
+    const body = await response.clone().text();
+    const snapshot = {
+      body,
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders(response)
+    };
+
+    if (response.ok) {
+      const entry = {
+        url,
+        ...snapshot,
+        etag: response.headers.get("etag") || cachedEntry?.etag || "",
+        lastModified: response.headers.get("last-modified") || cachedEntry?.lastModified || "",
+        fetchedAt: Date.now()
+      };
+      await cachePut(entry);
+      try {
+        window.dispatchEvent(new CustomEvent("p2k-api-cache-updated", {
+          detail: { url, fetchedAt: entry.fetchedAt }
+        }));
+      } catch (_) { /* Older WebViews may not support CustomEvent construction. */ }
+    }
+
+    return snapshot;
+  }
+
+  function sharedNetworkRequest(url, init, cachedEntry = null, background = false) {
+    const map = background ? backgroundRefreshes : inFlight;
+    if (!map.has(url)) {
+      const promise = networkSnapshot(url, init, cachedEntry)
+        .finally(() => map.delete(url));
+      map.set(url, promise);
+    }
+    return map.get(url);
+  }
+
+  window.fetch = async function p2kCachedFetch(input, init = {}) {
+    const url = chessApiURL(input);
+    const requestMethod = String(
+      init?.method || (input instanceof Request ? input.method : "GET") || "GET"
+    ).toUpperCase();
+    const requestedCacheMode = String(init?.p2kCacheMode || "default").toLowerCase();
+    const fetchInit = { ...(init || {}) };
+    delete fetchInit.p2kCacheMode;
+
+    if (!url || requestMethod !== "GET") return nativeFetch(input, fetchInit);
+
+    const signal = init?.signal || (input instanceof Request ? input.signal : null);
+    const policy = cachePolicy(url);
+    const cachedEntry = await cacheGet(url);
+    const isClubMatchIndex = /\/pub\/club\/[^/]+\/matches\/?$/.test(
+      new URL(url).pathname.toLowerCase()
+    );
+
+    /*
+     * The club match index defines which records are currently registered,
+     * ongoing, or finished. Always await its network revalidation instead of
+     * returning stale data and refreshing in the background.
+     */
+    if (requestedCacheMode === "network-only" || isClubMatchIndex) {
+      const snapshot = await withAbort(
+        sharedNetworkRequest(url, fetchInit, cachedEntry, false),
+        signal
+      );
+      return snapshotToResponse(snapshot, "REFRESH");
+    }
+
+    const age = cachedEntry ? Date.now() - Number(cachedEntry.fetchedAt || 0) : Infinity;
+
+    if (cachedEntry && age <= policy.usableFor) {
+      if (age > policy.freshFor && !backgroundRefreshes.has(url)) {
+        sharedNetworkRequest(url, fetchInit, cachedEntry, true).catch(error => {
+          console.warn("P2K shared API cache: background refresh failed", url, error);
+        });
+      }
+      return snapshotToResponse(
+        entryToSnapshot(cachedEntry),
+        age <= policy.freshFor ? "HIT" : "STALE"
+      );
+    }
+
+    const snapshot = await withAbort(
+      sharedNetworkRequest(url, fetchInit, cachedEntry, false),
+      signal
+    );
+    return snapshotToResponse(snapshot, "MISS");
+  };
+
+  function priorityScore(value) {
+    const text = String(value?.name || value?.title || value?.url || value?.apiUrl || value?.summary?.name || "").toUpperCase();
+    return PRIORITY_CODES.some(code => new RegExp(`(^|[^A-Z0-9])${code}([^A-Z0-9]|$)`, "i").test(text)) ? 1 : 0;
+  }
+
+  function startTimestamp(value) {
+    const raw = value?.start_time ?? value?.startTime ?? value?.summary?.start_time;
+    const numeric = Number(raw);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : Number.POSITIVE_INFINITY;
+  }
+
+  function comparePriority(a, b) {
+    const priorityDifference = priorityScore(b) - priorityScore(a);
+    if (priorityDifference !== 0) return priorityDifference;
+    const dateDifference = startTimestamp(a) - startTimestamp(b);
+    if (dateDifference !== 0) return dateDifference;
+    return String(a?.name || a?.summary?.name || a?.["@id"] || a?.apiUrl || "")
+      .localeCompare(String(b?.name || b?.summary?.name || b?.["@id"] || b?.apiUrl || ""));
+  }
+
+  window.p2kPrioritizeMatchReferences = values => [...(Array.isArray(values) ? values : [])].sort(comparePriority);
+  window.p2kPrioritizeRecords = values => [...(Array.isArray(values) ? values : [])].sort(comparePriority);
+  window.__P2K_SHARED_API_CACHE__ = {
+    database: DB_NAME,
+    store: STORE_NAME,
+    maxAgeMs: MAX_CACHE_AGE_MS,
+    clear: async () => {
+      const database = await openDatabase();
+      if (!database) return;
+      await new Promise(resolve => {
+        const transaction = database.transaction(STORE_NAME, "readwrite");
+        transaction.objectStore(STORE_NAME).clear();
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => resolve();
+      });
+    }
+  };
+})();
+</script>
+
+<script>
+(() => {
+  "use strict";
+
   const CLUB_ID = "promote-to-king";
   const MATCH_LIST_URL = `https://api.chess.com/pub/club/${CLUB_ID}/matches`;
   const PAGE_SIZE = 5;
@@ -1096,6 +1603,7 @@
   const processingActions = document.getElementById("p2kProcessingActions");
   const cancelButton = document.getElementById("p2kCancelButton");
   const resultsBox = document.getElementById("p2kResults");
+  const recruitmentRecap = document.getElementById("p2kRecruitmentRecap");
   const searchToolbar = document.getElementById("p2kSearchToolbar");
   const matchSearchInput = document.getElementById("p2kMatchSearch");
   const clearSearchButton = document.getElementById("p2kClearSearch");
@@ -1258,7 +1766,7 @@
     });
   }
 
-  async function requestJSONOnce(url, signal = null) {
+  async function requestJSONOnce(url, signal = null, options = {}) {
     if (signal?.aborted) throw new CancellationError();
 
     try {
@@ -1267,7 +1775,8 @@
         mode: "cors",
         cache: "no-store",
         headers: { Accept: "application/json" },
-        signal
+        signal,
+        p2kCacheMode: options.networkOnly === true ? "network-only" : "default"
       });
 
       if (!response.ok) throw new HttpError(response.status, url);
@@ -1279,12 +1788,12 @@
     }
   }
 
-  async function loadJSON(url, signal = null) {
+  async function loadJSON(url, signal = null, options = {}) {
     let lastError = null;
 
     for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt += 1) {
       try {
-        return await requestJSONOnce(url, signal);
+        return await requestJSONOnce(url, signal, options);
       } catch (error) {
         lastError = error;
         if (error instanceof CancellationError) throw error;
@@ -1728,6 +2237,205 @@
     return LEAGUE_ACRONYMS.filter(acronym => upperName.includes(acronym));
   }
 
+
+  function compareRecruitmentLineups(p2kRatings, opponentRatings, maxPlayers) {
+    const cappedP2K = Number.isFinite(maxPlayers)
+      ? p2kRatings.slice(0, maxPlayers)
+      : [...p2kRatings];
+    const cappedOpponent = Number.isFinite(maxPlayers)
+      ? opponentRatings.slice(0, maxPlayers)
+      : [...opponentRatings];
+    const boardCount = Math.min(cappedP2K.length, cappedOpponent.length);
+    let p2kAdvantageBoards = 0;
+    let opponentAdvantageBoards = 0;
+    let tiedBoards = 0;
+    let ratingDelta = 0;
+
+    for (let board = 0; board < boardCount; board += 1) {
+      const difference = cappedP2K[board] - cappedOpponent[board];
+      ratingDelta += difference;
+      if (difference > 0) p2kAdvantageBoards += 1;
+      else if (difference < 0) opponentAdvantageBoards += 1;
+      else tiedBoards += 1;
+    }
+
+    return {
+      boardCount,
+      p2kAdvantageBoards,
+      opponentAdvantageBoards,
+      tiedBoards,
+      netBoardAdvantage: p2kAdvantageBoards - opponentAdvantageBoards,
+      averageRatingDifference: boardCount > 0 ? ratingDelta / boardCount : 0
+    };
+  }
+
+  function recruitmentTargetReached(comparison, targetBoardCount, isLeagueMatch) {
+    if (!comparison || comparison.boardCount < targetBoardCount) return false;
+
+    if (isLeagueMatch) {
+      const requiredNetBoardAdvantage = Math.min(targetBoardCount, Math.max(2, Math.ceil(targetBoardCount * .20)));
+      const requiredAdvantagedBoards = Math.max(
+        requiredNetBoardAdvantage,
+        Math.ceil(targetBoardCount * .60)
+      );
+      return comparison.netBoardAdvantage >= requiredNetBoardAdvantage &&
+        comparison.p2kAdvantageBoards >= requiredAdvantagedBoards;
+    }
+
+    /* Friendlies aim for parity or a small positive board margin. */
+    return comparison.netBoardAdvantage >= 0 && comparison.netBoardAdvantage <= 2;
+  }
+
+  function buildRecruitmentRecommendation(match, p2kTeam, opponentTeam, bounds, maxPlayers, isLeagueMatch) {
+    const p2kRatings = ratedPlayers(p2kTeam, bounds).map(player => player.rating);
+    const opponentRatings = ratedPlayers(opponentTeam, bounds).map(player => player.rating);
+    const opponentCapacity = Number.isFinite(maxPlayers)
+      ? Math.min(maxPlayers, opponentRatings.length)
+      : opponentRatings.length;
+    const targetBoardCount = opponentCapacity;
+    const current = compareRecruitmentLineups(p2kRatings, opponentRatings, maxPlayers);
+    const leagueNetBoardTarget = Math.min(
+      targetBoardCount,
+      Math.max(2, Math.ceil(targetBoardCount * .20))
+    );
+    const targetLabel = isLeagueMatch
+      ? `a significant board advantage (at least +${leagueNetBoardTarget} net board${leagueNetBoardTarget === 1 ? "" : "s"} and 60% of boards ahead)`
+      : "a balanced lineup or a small P2K board advantage";
+
+    if (p2kTeam?.locked === true) {
+      return {
+        actionable: false,
+        needsRecruitment: false,
+        isLeagueMatch,
+        targetBoardCount,
+        current,
+        targetLabel,
+        summary: "Recruitment is unavailable because the P2K team is locked.",
+        detail: "The recommendation is informational only; registrations can no longer be added."
+      };
+    }
+
+    if (targetBoardCount === 0) {
+      return {
+        actionable: false,
+        needsRecruitment: false,
+        isLeagueMatch,
+        targetBoardCount,
+        current,
+        targetLabel,
+        summary: "No recruitment recommendation is available yet.",
+        detail: "The opponent has no rating-eligible registered lineup to compare."
+      };
+    }
+
+    const friendlyTargetAlreadyExceeded =
+      !isLeagueMatch &&
+      current.boardCount >= targetBoardCount &&
+      current.netBoardAdvantage > 2;
+
+    if (friendlyTargetAlreadyExceeded || recruitmentTargetReached(current, targetBoardCount, isLeagueMatch)) {
+      return {
+        actionable: true,
+        needsRecruitment: false,
+        isLeagueMatch,
+        targetBoardCount,
+        current,
+        targetLabel,
+        summary: friendlyTargetAlreadyExceeded
+          ? "No recruitment needed: P2K already exceeds the friendly-match target."
+          : "No recruitment needed: the target lineup balance is already reached.",
+        detail: `Current board balance: P2K ${current.p2kAdvantageBoards}, opponent ${current.opponentAdvantageBoards}, ` +
+          `${current.tiedBoards} tied across ${current.boardCount} paired board${current.boardCount === 1 ? "" : "s"}.`
+      };
+    }
+
+    const missingForFullComparison = Math.max(0, targetBoardCount - p2kRatings.length);
+    const observedTopRating = Math.max(
+      1800,
+      p2kRatings[0] || 0,
+      opponentRatings[0] || 0
+    );
+    const maximumCandidateRating = Number.isFinite(bounds.maximum)
+      ? Math.min(3000, Math.floor(bounds.maximum / 25) * 25)
+      : Math.min(3000, Math.ceil((observedTopRating + 400) / 25) * 25);
+    const minimumCandidateRating = Math.min(
+      maximumCandidateRating,
+      Math.max(100, Math.ceil(bounds.minimum / 25) * 25)
+    );
+    const maximumRecruitCount = Math.min(
+      12,
+      Math.max(missingForFullComparison, Number.isFinite(maxPlayers) ? Math.min(maxPlayers, 8) : 6, 1)
+    );
+
+    let solution = null;
+
+    for (let recruitCount = Math.max(1, missingForFullComparison); recruitCount <= maximumRecruitCount && !solution; recruitCount += 1) {
+      for (let candidateRating = minimumCandidateRating; candidateRating <= maximumCandidateRating; candidateRating += 25) {
+        const projectedRatings = [
+          ...p2kRatings,
+          ...Array.from({ length: recruitCount }, () => candidateRating)
+        ].sort((a, b) => b - a);
+        const projected = compareRecruitmentLineups(projectedRatings, opponentRatings, maxPlayers);
+
+        if (recruitmentTargetReached(projected, targetBoardCount, isLeagueMatch)) {
+          solution = { recruitCount, candidateRating, projected };
+          break;
+        }
+      }
+    }
+
+    if (!solution) {
+      const fallbackCount = Math.max(1, missingForFullComparison);
+      const projectedRatings = [
+        ...p2kRatings,
+        ...Array.from({ length: fallbackCount }, () => maximumCandidateRating)
+      ].sort((a, b) => b - a);
+      const projected = compareRecruitmentLineups(projectedRatings, opponentRatings, maxPlayers);
+      return {
+        actionable: true,
+        needsRecruitment: true,
+        feasible: false,
+        isLeagueMatch,
+        targetBoardCount,
+        current,
+        projected,
+        targetLabel,
+        recruitCount: fallbackCount,
+        minimumRating: maximumCandidateRating,
+        maximumRating: Number.isFinite(bounds.maximum) ? bounds.maximum : null,
+        summary: `Recruit at least ${fallbackCount} of the strongest eligible player${fallbackCount === 1 ? "" : "s"} available.`,
+        detail: `Aim for ${targetLabel}. The current board balance is ${current.p2kAdvantageBoards}–${current.opponentAdvantageBoards}; ` +
+          `players rated around ${maximumCandidateRating}+ would provide the strongest available improvement, although the target is not guaranteed by the current model.`
+      };
+    }
+
+    const rangeMaximum = Number.isFinite(bounds.maximum)
+      ? Math.min(bounds.maximum, solution.candidateRating + 99)
+      : solution.candidateRating + 99;
+    const countText = `${solution.recruitCount} eligible player${solution.recruitCount === 1 ? "" : "s"}`;
+    const ratingText = rangeMaximum > solution.candidateRating
+      ? `${solution.candidateRating}–${Math.floor(rangeMaximum)}`
+      : `${solution.candidateRating}+`;
+
+    return {
+      actionable: true,
+      needsRecruitment: true,
+      feasible: true,
+      isLeagueMatch,
+      targetBoardCount,
+      current,
+      projected: solution.projected,
+      targetLabel,
+      recruitCount: solution.recruitCount,
+      minimumRating: solution.candidateRating,
+      maximumRating: rangeMaximum,
+      summary: `Recruit ${countText} rated approximately ${ratingText}.`,
+      detail: `This is the lowest tested recruitment profile reaching ${targetLabel}. ` +
+        `Projected board balance: P2K ${solution.projected.p2kAdvantageBoards}, opponent ${solution.projected.opponentAdvantageBoards}, ` +
+        `${solution.projected.tiedBoards} tied across ${solution.projected.boardCount} board${solution.projected.boardCount === 1 ? "" : "s"}.`
+    };
+  }
+
   function analyzeMatch(match) {
     const p2kTeam = findP2KTeam(match);
     const opponentTeam = findOpponentTeam(match, p2kTeam);
@@ -1751,12 +2459,20 @@
     );
     const hasEnoughEligiblePlayers = minPlayers <= 0 || eligibleP2KPlayers >= minPlayers;
     const hasDefinedMaximumPlayers = Number.isFinite(maxPlayers);
-    const hasReachedMaximumPlayers =
-      hasDefinedMaximumPlayers && p2kPlayers.length >= maxPlayers;
+    const hasReachedEligibleMaximumPlayers =
+      hasDefinedMaximumPlayers && eligibleP2KPlayers >= maxPlayers;
     const hasLineupAdvantage = Boolean(
       lineupComparison && lineupComparison.opponentAdvantage < 0
     );
     const leagueMatches = matchingLeagueAcronyms(match?.name);
+    const recruitmentRecommendation = buildRecruitmentRecommendation(
+      match,
+      p2kTeam,
+      opponentTeam,
+      bounds,
+      maxPlayers,
+      leagueMatches.length > 0
+    );
     const priorityReasons = [];
 
     /*
@@ -1812,22 +2528,24 @@
       maxPlayers,
       lineupComparison,
       detailedAnalysis,
+      recruitmentRecommendation,
       hasEnoughEligiblePlayers,
       hasDefinedMaximumPlayers,
-      hasReachedMaximumPlayers,
+      hasReachedEligibleMaximumPlayers,
       hasLineupAdvantage,
       isLeagueMatch: leagueMatches.length > 0,
       locked: p2kTeam.locked === true,
       explicitlyOpen: p2kTeam.locked === false,
       /*
        * League matches are never lockable. A non-league match is lockable
-       * only when max_team_players is explicitly defined and P2K has reached
-       * that registration limit. Unlimited matches are never lockable.
+       * only when max_team_players is explicitly defined and P2K has enough
+       * rating-eligible registrations to fill that limit. Unlimited matches
+       * are never lockable.
        */
       isLockable:
         p2kTeam.locked === false &&
         leagueMatches.length === 0 &&
-        hasReachedMaximumPlayers &&
+        hasReachedEligibleMaximumPlayers &&
         hasLineupAdvantage,
       isPriority: priorityReasons.length > 0,
       priorityReasons
@@ -1938,6 +2656,11 @@
     return `${formatInteger(Math.round(first))}–${formatInteger(Math.round(second))}`;
   }
 
+  function infoMarkHTML(message, accessibleLabel = "Information") {
+    const safeMessage = escapeAttribute(message);
+    return `<span class="p2k-info-mark" tabindex="0" role="img" aria-label="${escapeAttribute(accessibleLabel)}: ${safeMessage}" title="${safeMessage}" data-tooltip="${safeMessage}">i</span>`;
+  }
+
   function renderRatingStatisticsHTML(statistics, p2kName, opponentName) {
     if (!statistics?.team1 || !statistics?.team2) return "";
 
@@ -1976,12 +2699,14 @@
     };
 
     return `
-      <div class="p2k-stats-title">Rating distribution statistics</div>
+      <div class="p2k-stats-title">
+        Rating distribution statistics
+        ${infoMarkHTML("Eligible and non-eligible groups are determined only by the match rating window. The lineup-size limit is applied separately when simulating boards.", "Rating statistics information")}
+      </div>
       <div class="p2k-stats-grid">
         ${panel(p2kName, statistics.team1, "p2k-favorable")}
         ${panel(opponentName, statistics.team2, "p2k-unfavorable")}
       </div>
-      <div class="p2k-chart-note">Eligibility in this chart and these statistics is based only on the match rating window. Lineup-size caps are applied separately to board simulation.</div>
     `;
   }
 
@@ -2103,7 +2828,7 @@
     ].filter(Boolean).join("");
 
     return `
-      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Registered players by rating bracket (100 Elo)</div>${expandButton}</div>`}
+      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Registered players by rating bracket (100 Elo)${infoMarkHTML("Bars show registered players in each 100-Elo bracket. Solid bars are rating-eligible; translucent bars are outside the match rating window. Hover a bar for the exact count.", "Rating bracket chart information")}</div>${expandButton}</div>`}
       <div class="p2k-chart-wrap">
         <div class="p2k-chart-scroll">
           <svg class="p2k-chart-svg" width="${chartWidth}" height="${chartBottom + bottomPadding}" viewBox="0 0 ${chartWidth} ${chartBottom + bottomPadding}" role="img" aria-label="Registered eligible and non-eligible players by rating bracket for ${escapeAttribute(p2kName)} and ${escapeAttribute(opponentName)}">
@@ -2113,7 +2838,6 @@
           </svg>
         </div>
         <div class="p2k-chart-legend">${legendItems}</div>
-        <div class="p2k-chart-note">Hover a bar to see the exact number of rating-eligible or non-eligible registered players in that 100-point Elo bracket.</div>
       </div>
     `;
   }
@@ -2189,7 +2913,7 @@
       : "";
 
     return `
-      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Cumulative registered players at or above rating (100 Elo steps)</div>${expandButton}</div>`}
+      ${large ? "" : `<div class="p2k-chart-heading"><div class="p2k-chart-title">Cumulative registered players at or above rating (100 Elo steps)${infoMarkHTML("Each point is the number of registered players rated at or above that 100-Elo threshold. Hover a point for the exact total.", "Cumulative chart information")}</div>${expandButton}</div>`}
       <div class="p2k-chart-wrap">
         <div class="p2k-chart-scroll">
           <svg class="p2k-chart-svg" width="${chartWidth}" height="${chartBottom + bottomPadding}" viewBox="0 0 ${chartWidth} ${chartBottom + bottomPadding}" role="img" aria-label="Cumulative registered player counts at or above each rating threshold for ${escapeAttribute(p2kName)} and ${escapeAttribute(opponentName)}">
@@ -2204,7 +2928,6 @@
           <span><i class="p2k-chart-swatch" style="background:#91e09a"></i>${escapeHTML(p2kName)}</span>
           <span><i class="p2k-chart-swatch" style="background:#ff8b79"></i>${escapeHTML(opponentName)}</span>
         </div>
-        <div class="p2k-chart-note">Each point shows the number of registered players rated at or above the displayed threshold. Hover a point for the exact total.</div>
       </div>
     `;
   }
@@ -2218,7 +2941,7 @@
     const opponentName = String(match.opponentTeam.name || "Other team");
 
     if (chartType === "cumulative") {
-      chartModalTitle.textContent = `${match.name} — cumulative players at or above rating`;
+      chartModalTitle.innerHTML = `${escapeHTML(match.name)} — cumulative players at or above rating${infoMarkHTML("Each point is the number of registered players rated at or above that 100-Elo threshold. Hover a point for the exact total.", "Cumulative chart information")}`;
       chartModalBody.innerHTML = renderCumulativeRatingHTML(
         match.detailedAnalysis.cumulativeRatingData,
         p2kName,
@@ -2226,7 +2949,7 @@
         { large: true }
       );
     } else {
-      chartModalTitle.textContent = `${match.name} — registered players by rating bracket`;
+      chartModalTitle.innerHTML = `${escapeHTML(match.name)} — registered players by rating bracket${infoMarkHTML("Bars show registered players in each 100-Elo bracket. Solid bars are rating-eligible; translucent bars are outside the match rating window. Hover a bar for the exact count.", "Rating bracket chart information")}`;
       chartModalBody.innerHTML = renderRatingHistogramHTML(
         match.detailedAnalysis.ratingBracketHistogram,
         match.detailedAnalysis.ratingStatistics,
@@ -2248,6 +2971,87 @@
     chartModalBody.innerHTML = "";
     lastChartModalTrigger?.focus();
     lastChartModalTrigger = null;
+  }
+
+
+  function recruitmentPanelHTML(match) {
+    const recommendation = match.recruitmentRecommendation;
+    if (!recommendation) return "";
+
+    const panelClass = recommendation.needsRecruitment
+      ? "p2k-recruitment-panel p2k-recruitment-needed"
+      : "p2k-recruitment-panel p2k-recruitment-ready";
+    const goalInformation = match.isLeagueMatch
+      ? "League matches target a significant P2K board advantage: at least a 20% net board margin (normally a minimum of two extra advantageous boards, or one when only one board is available), and at least 60% of paired boards rated in P2K's favour."
+      : "Friendly matches target parity or a small P2K board advantage. The model recommends the lowest tested player count and rating threshold that reaches at least an even board balance.";
+
+    return `
+      <div class="${panelClass}">
+        <div class="p2k-recruitment-title">
+          Recruitment recommendation
+          ${infoMarkHTML(goalInformation, "Recruitment target")}
+        </div>
+        <div class="p2k-recruitment-main">${escapeHTML(recommendation.summary)}</div>
+        <div class="p2k-recruitment-meta">${escapeHTML(recommendation.detail)}</div>
+      </div>
+    `;
+  }
+
+  function recruitmentRecapItemHTML(match) {
+    const recommendation = match.recruitmentRecommendation;
+    const startDate = Number.isFinite(match.startTimestamp)
+      ? formatStartDate(match.startTimestamp)
+      : "Start date unavailable";
+    return `
+      <li>
+        <a href="${escapeAttribute(match.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(match.name)}</a>
+        — ${escapeHTML(recommendation.summary)}
+        <span class="p2k-recruitment-empty"> Starts ${escapeHTML(startDate)}.</span>
+      </li>
+    `;
+  }
+
+  function renderRecruitmentRecap() {
+    if (!state.processed) {
+      recruitmentRecap.hidden = true;
+      recruitmentRecap.innerHTML = "";
+      return;
+    }
+
+    const nowTimestamp = Date.now() / 1000;
+    const recapEndTimestamp = nowTimestamp + (10 * 24 * 60 * 60);
+    const openRecruitmentMatches = state.matches
+      .filter(match =>
+        match.recruitmentRecommendation?.needsRecruitment &&
+        match.p2kTeam?.locked === false &&
+        Number.isFinite(match.startTimestamp) &&
+        match.startTimestamp >= nowTimestamp &&
+        match.startTimestamp <= recapEndTimestamp
+      )
+      .sort((a, b) => a.startTimestamp - b.startTimestamp || a.name.localeCompare(b.name));
+    const leagueMatches = openRecruitmentMatches.filter(match => match.isLeagueMatch);
+    const friendlyMatches = openRecruitmentMatches.filter(match => !match.isLeagueMatch);
+    const groupHTML = (title, matches, emptyText) => `
+      <div class="p2k-recruitment-group">
+        <div class="p2k-recruitment-group-heading">${escapeHTML(title)}</div>
+        ${matches.length > 0
+          ? `<ul class="p2k-recruitment-list">${matches.map(recruitmentRecapItemHTML).join("")}</ul>`
+          : `<div class="p2k-recruitment-empty">${escapeHTML(emptyText)}</div>`}
+      </div>
+    `;
+
+    recruitmentRecap.innerHTML = `
+      <div class="p2k-recruitment-recap-title">
+        Recruitment recap — next 10 days
+        ${infoMarkHTML("Only matches scheduled to start during the next 10 days are included. League matches are listed first and target a significant board advantage. Friendly matches target an even lineup or a small P2K advantage. Recommendations simulate identical hypothetical recruits in 25-rating-point steps and use the lowest tested profile reaching the target.", "Recruitment recap methodology")}
+      </div>
+      <div class="p2k-recruitment-recap-intro">
+        ${openRecruitmentMatches.length} open match${openRecruitmentMatches.length === 1 ? "" : "es"} starting within the next 10 days require${openRecruitmentMatches.length === 1 ? "s" : ""} recruitment.
+      </div>
+      ${groupHTML("League matches", leagueMatches, "No open league match starting within the next 10 days currently requires recruitment.")}
+      ${groupHTML("Friendly matches", friendlyMatches, "No open friendly match starting within the next 10 days currently requires recruitment.")}
+    `;
+    recruitmentRecap.hidden = false;
   }
 
   function detailedInfoHTML(match) {
@@ -2362,6 +3166,7 @@
       return `
         <div id="${escapeHTML(match.detailId)}" class="p2k-expanded-details">
           ${registrationTable}
+          ${recruitmentPanelHTML(match)}
           <div class="p2k-detail-line">Detailed lineup analysis is unavailable because no eligible board can be paired.</div>
           ${cumulativeRatingChart}
           ${ratingHistogram}
@@ -2406,6 +3211,7 @@
     return `
       <div id="${escapeHTML(match.detailId)}" class="p2k-expanded-details">
         ${registrationTable}
+        ${recruitmentPanelHTML(match)}
 
         <div class="p2k-detail-line">
           <span class="p2k-detail-label">Delta strength over eligible boards (P2K - opponent):</span>
@@ -2435,7 +3241,7 @@
           <table class="p2k-detail-table" aria-label="Predicted match result">
             <thead>
               <tr>
-                <th scope="col">Prediction</th>
+                <th scope="col">Prediction${infoMarkHTML("Win probabilities are computed from the Elo expected score of every simulated pairing over two games per board, using half-point score units so draws are included. Predicted scores use the most likely aggregate half-point result and therefore always end in .0 or .5.", "Prediction methodology")}</th>
                 <th scope="col">${escapeHTML(p2kName)}</th>
                 <th scope="col">${escapeHTML(opponentName)}</th>
               </tr>
@@ -2458,9 +3264,6 @@
             </tbody>
           </table>
 
-          <div class="p2k-model-note">
-            Win probabilities are computed from the Elo expected score of every simulated pairing over two games per board, using half-point score units so draws are included. Predicted scores use the most likely aggregate half-point result and therefore always end in .0 or .5.
-          </div>
         </div>
 
         ${cumulativeRatingChart}
@@ -2534,8 +3337,14 @@
               type="button"
               data-match-key="${escapeHTML(match.cacheKey)}"
               title="Copy this match vignette's HTML to the clipboard"
+              aria-label="Copy vignette HTML"
             >
-              Copy HTML
+              <span class="p2k-copy-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" focusable="false">
+                  <rect x="6.5" y="6.5" width="9" height="10" rx="1.5"></rect>
+                  <path d="M4.5 13.5h-1a1.5 1.5 0 0 1-1.5-1.5V3.5A1.5 1.5 0 0 1 3.5 2h8A1.5 1.5 0 0 1 13 3.5v1"></path>
+                </svg>
+              </span>
             </button>
             <button
               class="p2k-detail-toggle"
@@ -2819,6 +3628,7 @@
   function renderResults() {
     if (!state.processed) return;
 
+    renderRecruitmentRecap();
     searchToolbar.hidden = false;
 
     const matches = filteredAndSortedMatches();
@@ -2876,25 +3686,33 @@
 
     resultsBox.querySelectorAll(".p2k-copy-html").forEach(button => {
       button.addEventListener("click", async () => {
-        const defaultLabel = "Copy HTML";
+        const defaultHTML = button.innerHTML;
+        const defaultTitle = button.title;
+        const defaultAriaLabel = button.getAttribute("aria-label") || "Copy vignette HTML";
         button.disabled = true;
         button.classList.remove("p2k-copy-success", "p2k-copy-error");
 
         try {
           const vignetteHTML = vignetteHTMLForClipboard(button);
           await copyTextToClipboard(vignetteHTML);
-          button.textContent = "Copied!";
+          button.innerHTML = '<span class="p2k-copy-icon" aria-hidden="true">✓</span>';
+          button.title = "Copied";
+          button.setAttribute("aria-label", "Vignette HTML copied");
           button.classList.add("p2k-copy-success");
         } catch (error) {
           console.error("P2K Upcoming Matches Analyzer: unable to copy vignette HTML automatically", error);
           showManualCopyModal(vignetteHTMLForClipboard(button));
-          button.textContent = "Copy manually";
+          button.innerHTML = '<span class="p2k-copy-icon" aria-hidden="true">!</span>';
+          button.title = "Automatic copy blocked; use the manual copy window";
+          button.setAttribute("aria-label", "Automatic copy blocked; manual copy opened");
           button.classList.add("p2k-copy-error");
         }
 
         window.setTimeout(() => {
           if (!button.isConnected) return;
-          button.textContent = defaultLabel;
+          button.innerHTML = defaultHTML;
+          button.title = defaultTitle;
+          button.setAttribute("aria-label", defaultAriaLabel);
           button.classList.remove("p2k-copy-success", "p2k-copy-error");
           button.disabled = false;
         }, 1600);
@@ -2942,6 +3760,8 @@
     analyzeButton.disabled = true;
     analyzeButton.textContent = "Analyzing...";
     resultsBox.innerHTML = "";
+    recruitmentRecap.hidden = true;
+    recruitmentRecap.innerHTML = "";
     searchToolbar.hidden = true;
     showCancelButton();
 
@@ -2949,8 +3769,15 @@
       setStatus("Loading registration match list...", "working", 0);
       await allowScreenUpdate();
 
-      const listData = await loadJSON(MATCH_LIST_URL, signal);
-      const registrationMatches = Array.isArray(listData?.registered) ? listData.registered : [];
+      /*
+       * Always await a fresh club match index. It is the authoritative source
+       * for whether a match is still in registration, so stale-while-revalidate
+       * is intentionally disabled for this one request.
+       */
+      const listData = await loadJSON(MATCH_LIST_URL, signal, { networkOnly: true });
+      const registrationMatches = p2kPrioritizeMatchReferences(
+        Array.isArray(listData?.registered) ? listData.registered : []
+      );
       const total = registrationMatches.length;
 
       if (total === 0) {
@@ -2985,9 +3812,36 @@
         progressBar.style.width = `${(sequentialNumber / total) * 100}%`;
       }
 
+      /*
+       * Recheck the authoritative registration index at completion. A match
+       * may start while a long analysis is processing its detail endpoints.
+       */
+      setStatus("Refreshing current registration status...", "working", 99);
+      await allowScreenUpdate();
+      let matchesRemovedAfterRefresh = 0;
+      try {
+        const finalListData = await loadJSON(MATCH_LIST_URL, signal, { networkOnly: true });
+        const currentRegisteredIDs = new Set(
+          (Array.isArray(finalListData?.registered) ? finalListData.registered : [])
+            .map(reference => String(reference?.["@id"] || ""))
+            .filter(Boolean)
+        );
+        const previousMatchCount = state.matches.length;
+        state.matches = state.matches.filter(match =>
+          currentRegisteredIDs.has(String(match.raw?.["@id"] || match.cacheKey || ""))
+        );
+        matchesRemovedAfterRefresh = previousMatchCount - state.matches.length;
+      } catch (refreshError) {
+        if (refreshError instanceof CancellationError) throw refreshError;
+        console.warn("P2K Upcoming Matches Analyzer: final registration refresh failed", refreshError);
+      }
+
       state.processed = true;
+      const removalNote = matchesRemovedAfterRefresh > 0
+        ? ` ${matchesRemovedAfterRefresh} match${matchesRemovedAfterRefresh === 1 ? "" : "es"} that left registration during processing ${matchesRemovedAfterRefresh === 1 ? "was" : "were"} removed.`
+        : "";
       setStatus(
-        `Analysis complete: ${state.matches.length} match${state.matches.length === 1 ? "" : "es"} processed.`,
+        `Analysis complete: ${state.matches.length} current registration match${state.matches.length === 1 ? "" : "es"} processed.${removalNote}`,
         "success",
         100
       );
@@ -3013,6 +3867,12 @@
       analyzeButton.textContent = "Analyze upcoming matches";
     }
   }
+
+  window.__P2K_RECRUITMENT_HELPERS__ = {
+    compareRecruitmentLineups,
+    recruitmentTargetReached,
+    buildRecruitmentRecommendation
+  };
 
   chartModalClose.addEventListener("click", closeChartModal);
 
